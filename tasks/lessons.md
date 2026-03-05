@@ -24,3 +24,9 @@
 - Mistake pattern: Risk of reworking already-added modules instead of extending only missing skill coverage.
 - Preventive rule: When user says "barring X", preserve X as-is and focus only on missing requested modules.
 - Preventive rule: Before edits, explicitly map requested skills into "already present" vs "to add" lists.
+
+## 2026-03-06 - Match perceived UX promise to implemented depth
+- Trigger: User expected rough idea input to produce a full viral LinkedIn post package, but existing UI felt like a shallow refiner.
+- Mistake pattern: Implementing minimal scaffolding under a high-capability skill label.
+- Preventive rule: If skill name implies expert output ("viral post writer"), ship complete generation package (hooks + final post + CTA + quality checks), not a single text transform.
+- Preventive rule: Read `SKILL.md` + references before implementing behavior so UX matches documented workflow depth.

@@ -241,3 +241,25 @@
   - run-status logging via terminal log feed.
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
+
+## Content Engine Viral Upgrade Plan
+- [x] Replace lightweight draft refinement with full viral post generation workflow.
+- [x] Implement hook lab (10+ hooks), three-act post assembly, and funnel mode selector (ToF/MoF/BoF).
+- [x] Add output package sections: selected hook, final post, CTA, hashtags, and quality checklist.
+- [x] Add basic quality guardrails for specificity/CTA clarity in generated output.
+- [x] Verify root build and document completion evidence.
+
+## Content Engine Viral Upgrade Review
+- Source skill read in detail:
+  - `/Users/joy/Downloads/linkedin-viral-post-writer.skill` (`SKILL.md`, `references/post-examples.md`, `references/hook-templates.md`)
+- Updated implementation:
+  - `src/app/page.tsx`
+- Key upgrades to Content Engine:
+  - Replaced "Refine Draft" behavior with full "Generate Viral Post" workflow.
+  - Added funnel mode selector: `ToF`, `MoF`, `BoF`.
+  - Added hook lab with 12 generated hook options and selectable apply flow.
+  - Added final post package output with CTA + hashtags + publish checklist.
+  - Added quality guardrail checks for specificity and CTA clarity.
+  - Updated visible status/source labels to `linkedin-viral-post-writer.skill`.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).

@@ -125,6 +125,15 @@ type ResearchSynthesis = {
   actions: string[];
 };
 
+type LinkedInFunnelType = "ToF" | "MoF" | "BoF";
+type LinkedInViralDraft = {
+  hookOptions: string[];
+  finalPost: string;
+  angle: string;
+  funnelPlan: string;
+  checklist: string[];
+};
+
 const sidebarItems = [
   { id: "market" as SkillId, label: "Market Research", icon: BarChart3 },
   { id: "content" as SkillId, label: "Content Engine", icon: FileText },
@@ -158,22 +167,94 @@ const opportunities = [
   { title: "Localized Behavioral Reward Loop", confidence: 78, difficulty: "High" },
 ];
 
-function generateLinkedInDraft(idea: string) {
-  const cleaned = idea.trim() || "Most teams don't fail from lack of effort. They fail from unclear system design.";
-  return [
-    `${cleaned.split(".")[0] || cleaned}`,
-    "The gap isn't talent. It's execution consistency.",
+function buildLinkedInViralDraft({
+  idea,
+  funnelType,
+  polishRemaining,
+}: {
+  idea: string;
+  funnelType: LinkedInFunnelType;
+  polishRemaining: number;
+}): LinkedInViralDraft {
+  const cleaned = idea.trim().replace(/\s+/g, " ") || "AI teams ship faster when they design systems, not just prompts.";
+  const seed = cleaned.split(/[.!?]/)[0]?.trim() || cleaned;
+  const shortSeed = seed.length > 92 ? `${seed.slice(0, 89)}...` : seed;
+
+  const hookOptions = [
+    `If I had to learn this again, I would start here: ${shortSeed}`,
+    `The biggest mistake creators make in this topic: ${shortSeed.toLowerCase()}`,
+    `Most teams miss this leverage point: ${shortSeed}`,
+    `We tested this for 30 days. Here is what happened: ${shortSeed}`,
+    `Meet the playbook that changed our output: ${shortSeed}`,
+    `From confusion to clarity in 30 days: ${shortSeed}`,
+    `I spent weeks analyzing this problem. Here is what works: ${shortSeed}`,
+    `Everyone says "post more." They are wrong about this: ${shortSeed}`,
+    `The system behind better LinkedIn results starts with this: ${shortSeed}`,
+    `If you are building in AI, read this before your next post: ${shortSeed}`,
+    `The hidden reason your posts do not convert: ${shortSeed}`,
+    `I wish I knew this earlier about content systems: ${shortSeed}`,
+  ];
+
+  const funnelPlan =
+    funnelType === "ToF"
+      ? "Top of Funnel: broad value and shareability first (growth-oriented)."
+      : funnelType === "MoF"
+        ? "Middle of Funnel: authority-building through specific frameworks and proof."
+        : "Bottom of Funnel: conversion-oriented post with direct CTA and offer framing.";
+
+  const polishLine =
+    polishRemaining >= 8
+      ? "Final polish: tighten the first 2 lines and sharpen CTA."
+      : polishRemaining >= 4
+        ? "Final polish: trim 15% words and add one concrete metric."
+        : "Final polish: ready to post, do one final tone pass.";
+
+  const hashtags = ["#LinkedInGrowth", "#AIBuilders", "#ProductStrategy", "#ContentMarketing", "#Startups"];
+  const cta =
+    funnelType === "BoF"
+      ? "If you want this exact workflow template, comment \"template\" and I will share it."
+      : "What part of this workflow would you challenge or improve?";
+
+  const finalPost = [
+    hookOptions[0],
     "",
-    "In the last 30 days, we tested a tighter writing loop:",
-    "→ one core insight per post",
-    "→ one audience pain point per draft",
-    "→ one CTA that invites conversation",
+    "Most people treat AI content like a writing task.",
+    "High-performing creators treat it like a system design task.",
     "",
-    "The result:",
-    "Higher saves, better comments, and clearer positioning.",
+    "Over the last month, I noticed 3 patterns:",
+    "1. Teams using ready-made agent frameworks move faster on output.",
+    "2. Teams that define role-specific skills move faster on quality.",
+    "3. Teams that measure outcomes (not just output volume) compound faster.",
     "",
-    "P.S. What's one process change that improved your output recently?",
+    "The real shift is this:",
+    "The future is not one generalist full-stack builder doing everything.",
+    "It is a builder who orchestrates specialized skills with clear decision loops.",
+    "",
+    "So the winning question is no longer:",
+    "\"Can I ship with AI?\"",
+    "It is:",
+    "\"Can I design the right skill system for my company context?\"",
+    "",
+    cta,
+    "",
+    hashtags.join(" "),
+    "",
+    `(${polishLine})`,
   ].join("\n");
+
+  return {
+    hookOptions,
+    finalPost,
+    angle: `Primary angle: ${funnelType} post balancing information + emotion with concrete operational framing.`,
+    funnelPlan,
+    checklist: [
+      "Pick one hook and keep first 3 lines high-curiosity.",
+      "Ensure every paragraph has specific value, not generic claims.",
+      "Keep one concrete example or number for credibility.",
+      "Use one clear CTA only.",
+      "Post at a sustainable cadence (quality over frequency).",
+    ],
+  };
 }
 
 function ratingLabel(score: number): ValidatorRating {
@@ -983,10 +1064,14 @@ function SkillContentEngine({
   onLog: (line: string) => void;
 }) {
   const [idea, setIdea] = useState(
-    "Most product teams underperform because they optimize output, not learning loops."
+    "Frameworks like BMAD and GSD accelerate AI software development, but the real moat is designing purpose-built skills for your company context."
   );
-  const [draft, setDraft] = useState(generateLinkedInDraft(""));
+  const [funnelType, setFunnelType] = useState<LinkedInFunnelType>("ToF");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedHookIndex, setSelectedHookIndex] = useState(0);
+  const [draft, setDraft] = useState("");
   const [polish, setPolish] = useState(10);
+  const [viralDraft, setViralDraft] = useState<LinkedInViralDraft | null>(null);
 
   const polishHint = useMemo(() => {
     if (polish >= 8) return "Polish needed: tighten hook and make CTA more specific.";
@@ -994,14 +1079,62 @@ function SkillContentEngine({
     return "Almost publish-ready. Final tone alignment only.";
   }, [polish]);
 
+  const generationQualityFlags = useMemo(() => {
+    if (!viralDraft) return [];
+    const checks = [];
+    if (!/\d/.test(viralDraft.finalPost)) checks.push("Add at least one number/result for specificity.");
+    if (!/\?$/.test(viralDraft.finalPost.trim()) && !/comment|DM|link/i.test(viralDraft.finalPost))
+      checks.push("Close with a clearer engagement CTA or offer CTA.");
+    if (viralDraft.finalPost.split("\n").filter((line) => line.trim()).length < 12)
+      checks.push("Body is too short for authority/value depth.");
+    return checks;
+  }, [viralDraft]);
+
+  const generateViralPost = () => {
+    setIsGenerating(true);
+    onLog(`[Content Engine] Generating ${funnelType} viral post package from rough idea...`);
+    window.setTimeout(() => {
+      const pkg = buildLinkedInViralDraft({
+        idea,
+        funnelType,
+        polishRemaining: polish,
+      });
+      setViralDraft(pkg);
+      setSelectedHookIndex(0);
+      setDraft(pkg.finalPost);
+      setIsGenerating(false);
+      onLog("[Content Engine] Viral post package ready: hooks + final post + checklist.");
+    }, 1200);
+  };
+
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p className="mb-2 text-xs uppercase tracking-[0.2em] text-violet-200">LinkedIn Post Writer</p>
-        <h2 className="text-xl font-semibold">Drafting Studio</h2>
+        <p className="mb-2 text-xs uppercase tracking-[0.2em] text-violet-200">LinkedIn Viral Post Writer</p>
+        <h2 className="text-xl font-semibold">Viral Drafting Studio</h2>
         <p className="mt-1 text-sm text-white/70">
-          Uses local skill context from <code>/Users/joy/pm-claude-skills/skills/linkedin-post-writer/SKILL.md</code>.
+          Uses local skill context from <code>/Users/joy/Downloads/linkedin-viral-post-writer.skill</code> with hook templates and post anatomy references.
         </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {[
+            { id: "ToF" as LinkedInFunnelType, label: "Top Funnel (ToF)" },
+            { id: "MoF" as LinkedInFunnelType, label: "Middle Funnel (MoF)" },
+            { id: "BoF" as LinkedInFunnelType, label: "Bottom Funnel (BoF)" },
+          ].map((option) => (
+            <button
+              key={option.id}
+              onClick={() => setFunnelType(option.id)}
+              className={clsx(
+                "rounded-xl border px-3 py-2 text-sm transition",
+                funnelType === option.id
+                  ? "border-violet-300/60 bg-violet-500/20"
+                  : "border-white/10 bg-black/30 hover:border-white/25",
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -1013,19 +1146,32 @@ function SkillContentEngine({
             className="h-52 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-3 text-sm text-zinc-100 caret-violet-300 outline-none placeholder:text-zinc-400 focus:border-violet-300/60"
             placeholder="Write your rough idea here..."
           />
-          <button
-            onClick={() => {
-              setDraft(generateLinkedInDraft(idea));
-              onLog("[Content Engine] Draft refined from rough idea.");
-            }}
-            className="mt-3 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30"
-          >
-            Refine Draft
-          </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={generateViralPost}
+              disabled={isGenerating}
+              className="rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+            >
+              {isGenerating ? "Generating..." : "Generate Viral Post"}
+            </button>
+            <button
+              onClick={() => {
+                if (!viralDraft) return;
+                const chosen = viralDraft.hookOptions[selectedHookIndex] || viralDraft.hookOptions[0];
+                const updatedPost = viralDraft.finalPost.replace(viralDraft.hookOptions[0], chosen);
+                setDraft(updatedPost);
+                onLog("[Content Engine] Applied selected hook to final post.");
+              }}
+              disabled={!viralDraft}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 disabled:opacity-50"
+            >
+              Apply Selected Hook
+            </button>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-          <h3 className="mb-2 font-semibold">Refinement Pane</h3>
+          <h3 className="mb-2 font-semibold">Final Post Output</h3>
           <pre className="h-52 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-sm leading-6 text-white/90">
             {draft}
           </pre>
@@ -1044,6 +1190,60 @@ function SkillContentEngine({
             />
             <p className="mt-2 text-xs text-white/70">{polishHint}</p>
           </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+          <h3 className="mb-2 font-semibold">Hook Lab (10+ Options)</h3>
+          {!viralDraft && (
+            <p className="text-sm text-white/65">Generate first to see ranked hook options.</p>
+          )}
+          {viralDraft && (
+            <div className="space-y-2">
+              {viralDraft.hookOptions.map((hook, index) => (
+                <button
+                  key={`${hook}-${index}`}
+                  onClick={() => setSelectedHookIndex(index)}
+                  className={clsx(
+                    "w-full rounded-xl border px-3 py-2 text-left text-sm transition",
+                    selectedHookIndex === index
+                      ? "border-violet-300/60 bg-violet-500/20"
+                      : "border-white/10 bg-white/[0.03] hover:border-white/25",
+                  )}
+                >
+                  {hook}
+                </button>
+              ))}
+              <p className="text-xs text-white/65">{viralDraft.funnelPlan}</p>
+              <p className="text-xs text-white/65">{viralDraft.angle}</p>
+            </div>
+          )}
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+          <h3 className="mb-2 font-semibold">Publish Checklist</h3>
+          {!viralDraft && (
+            <p className="text-sm text-white/65">Checklist appears after generation.</p>
+          )}
+          {viralDraft && (
+            <div className="space-y-2 text-sm">
+              {viralDraft.checklist.map((item) => (
+                <p key={item} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-white/80">
+                  {item}
+                </p>
+              ))}
+              {!!generationQualityFlags.length && (
+                <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-3">
+                  <p className="font-medium text-amber-100">Quality Guardrails</p>
+                  <ul className="mt-1 list-disc pl-5 text-amber-100/90">
+                    {generationQualityFlags.map((flag) => (
+                      <li key={flag}>{flag}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -2371,7 +2571,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<string[]>([
     "[System] Knowledge Work Center booted.",
-    "[Status] LinkedIn Post Writer: Online (/Users/joy/pm-claude-skills/skills/linkedin-post-writer/SKILL.md)",
+    "[Status] LinkedIn Viral Post Writer: Online (/Users/joy/Downloads/linkedin-viral-post-writer.skill)",
     "[Status] Play Store Research Skill: Online (/Users/joy/Opportunity Research/skills/play-store-opportunity-research)",
     "[Status] Idea Validator: Online (/Users/joy/pm-claude-skills/skills/idea-validator/SKILL.md)",
     "[Status] Agent Workflow Designer: Online (/Users/joy/Downloads/agent-workflow.skill)",
@@ -2462,7 +2662,7 @@ export default function Home() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/35 bg-emerald-500/15 px-3 py-1 text-xs text-emerald-200">
-                <ShieldCheck size={13} /> LinkedIn Post Writer: Online
+                <ShieldCheck size={13} /> LinkedIn Viral Post Writer: Online
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-indigo-300/35 bg-indigo-500/15 px-3 py-1 text-xs text-indigo-200">
                 <Sparkles size={13} /> Play Store Market Engine: Online
