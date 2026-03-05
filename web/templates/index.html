@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Research Play Store Opportunity</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <h1>Research Play Store Opportunity</h1>
+      <p>Choose market inputs and generate category charts, competitor deep-dive, and top opportunities.</p>
+    </header>
+
+    <section class="panel">
+      <form id="research-form">
+        <div class="grid">
+          <label>
+            Category
+            <select name="category" required>
+              {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            Country
+            <input name="country" value="in" maxlength="2" required>
+          </label>
+          <label>
+            Language
+            <input name="lang" value="en" maxlength="5" required>
+          </label>
+          <label>
+            Query
+            <input name="query" value="AI habit tracker" required>
+          </label>
+          <label>
+            Chart Limit
+            <input type="number" name="chartLimit" value="25" min="10" max="60">
+          </label>
+          <label>
+            Deep-Dive Apps
+            <input type="number" name="deepDiveCount" value="8" min="3" max="15">
+          </label>
+        </div>
+        <button id="run-btn" type="submit">Run Research</button>
+      </form>
+      <p id="status" class="status"></p>
+    </section>
+
+    <section id="summary" class="panel hidden"></section>
+    <section id="opportunities" class="panel hidden"></section>
+    <section id="charts" class="panel hidden"></section>
+    <section id="deepdive" class="panel hidden"></section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

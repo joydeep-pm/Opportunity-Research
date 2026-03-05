@@ -1,0 +1,4 @@
+interface:
+  display_name: "Play Store Opportunity Research"
+  short_description: "Discover Play Store app gaps and build MVP PRDs."
+  default_prompt: "Research the Google Play Store for an underserved Android opportunity in {category}, rank top 3 concepts, and produce an MVP PRD for the best option."
