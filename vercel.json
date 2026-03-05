@@ -1,13 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "vite",
-  "installCommand": "cd playintel-dashboard && npm install",
-  "buildCommand": "cd playintel-dashboard && npm run build",
-  "outputDirectory": "playintel-dashboard/dist",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "framework": "nextjs",
+  "installCommand": "cd knowledge-work-center && npm install",
+  "buildCommand": "cd knowledge-work-center && npm run build"
 }
