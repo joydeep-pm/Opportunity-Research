@@ -12,3 +12,9 @@
 - Mistake pattern: Shipping shell navigation without validating every named skill is represented as an actual module.
 - Preventive rule: Before finalizing multi-skill dashboards, cross-check user-requested skills against sidebar items and command palette entries.
 - Preventive rule: Add status chip + startup log entry for each active skill so omissions are visually obvious.
+
+## 2026-03-06 - Integrate user-provided .skill packages into existing modules
+- Trigger: User requested adding `prd-writer.skill` and `prompt-engineering.skill` into existing workspaces.
+- Mistake pattern: Leaving requested skills as external references instead of first-class UI modules.
+- Preventive rule: When user shares `.skill` files, inspect archive structure first (`SKILL.md` + references), then map concrete behaviors into dedicated panels.
+- Preventive rule: If user says "add into existing skill", upgrade the existing module rather than adding another placeholder.

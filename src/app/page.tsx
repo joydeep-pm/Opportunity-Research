@@ -8,20 +8,26 @@ import {
   CheckCircle2,
   Command,
   FileText,
+  Gauge,
+  GitBranch,
   Layers,
+  ListChecks,
   Loader2,
+  Rocket,
   Search,
   Settings,
   ShieldCheck,
   Sparkles,
+  Target,
   Terminal,
   TriangleAlert,
   WandSparkles,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-type SkillId = "market" | "content" | "validator" | "product" | "settings";
+type SkillId = "market" | "content" | "validator" | "workflow" | "prompt" | "product" | "settings";
 type ValidatorRating = "Strong" | "Moderate" | "Weak";
+type WorkflowComplexity = "single" | "multi" | "integration";
 
 type ValidatorDimension = {
   name: string;
@@ -49,10 +55,38 @@ type ValidatorReport = {
   }>;
 };
 
+type WorkflowBlueprint = {
+  architecture: "Single Agent" | "Multi-Agent Orchestration" | "Integration-Focused Agent";
+  scopeStatement: string;
+  nineStepPlan: Array<{ step: string; detail: string }>;
+  layerPriorities: Array<{ layer: string; priority: "High" | "Medium" | "Low"; focus: string }>;
+  promptTemplate: string;
+};
+
+type PrdDraft = {
+  title: string;
+  executiveSummary: string;
+  scope: string[];
+  nonGoals: string[];
+  metrics: Array<{ metric: string; target: string; guardrail: string }>;
+  rollout: string[];
+  risks: string[];
+  markdown: string;
+};
+
+type PromptAudit = {
+  topWeaknesses: string[];
+  optimizedPrompt: string;
+  evalPlan: string[];
+  tokenEstimate: { before: number; after: number; reductionPct: number };
+};
+
 const sidebarItems = [
   { id: "market" as SkillId, label: "Market Research", icon: BarChart3 },
   { id: "content" as SkillId, label: "Content Engine", icon: FileText },
   { id: "validator" as SkillId, label: "Idea Validator", icon: ShieldCheck },
+  { id: "workflow" as SkillId, label: "Agent Workflow", icon: GitBranch },
+  { id: "prompt" as SkillId, label: "Prompt Engineering", icon: WandSparkles },
   { id: "product" as SkillId, label: "Product Intelligence", icon: BrainCircuit },
   { id: "settings" as SkillId, label: "Settings", icon: Settings },
 ];
@@ -250,6 +284,267 @@ function buildIdeaReport({
         signal: "Strong if users repeat usage weekly and request to keep access.",
       },
     ],
+  };
+}
+
+function buildWorkflowBlueprint({
+  problem,
+  outcome,
+  constraints,
+  successMetric,
+  complexity,
+}: {
+  problem: string;
+  outcome: string;
+  constraints: string;
+  successMetric: string;
+  complexity: WorkflowComplexity;
+}): WorkflowBlueprint {
+  const architecture =
+    complexity === "multi"
+      ? "Multi-Agent Orchestration"
+      : complexity === "integration"
+        ? "Integration-Focused Agent"
+        : "Single Agent";
+
+  const scopeStatement = `Build a ${architecture.toLowerCase()} that solves "${problem}" and achieves "${outcome}" under constraints: ${constraints}.`;
+
+  const nineStepPlan = [
+    { step: "1. Define Purpose and Scope", detail: `Lock job-to-be-done and success metric: ${successMetric}.` },
+    { step: "2. Structure Inputs and Outputs", detail: "Define strict JSON input/output contracts with clear error states." },
+    { step: "3. Write System Instructions", detail: "Specify role, guardrails, style, and missing-data behavior." },
+    { step: "4. Enable Reasoning and Actions", detail: "Start with deterministic if/then checks, then add tool-calling loops." },
+    {
+      step: "5. Orchestrate Agents",
+      detail:
+        complexity === "multi"
+          ? "Use research, analysis, writing, and QA agents with simple handoff payloads."
+          : "Keep orchestration minimal until single-agent reliability is proven.",
+    },
+    { step: "6. Implement Memory and Context", detail: "Persist session state, user preferences, and key task history." },
+    { step: "7. Add Multimedia Capabilities", detail: "Add only if needed for the target workflow (docs/images/voice)." },
+    { step: "8. Format and Deliver Results", detail: "Return human-readable + machine-parseable outputs in parallel." },
+    { step: "9. Build Interface or API", detail: "Expose chat UI and API endpoint with logging and monitoring." },
+  ];
+
+  const layerPriorities: WorkflowBlueprint["layerPriorities"] = [
+    { layer: "Layer 1 · Infrastructure", priority: "High", focus: "Latency/cost monitoring and reliable state storage." },
+    {
+      layer: "Layer 3 · Protocol",
+      priority: complexity === "integration" ? "High" : "Medium",
+      focus: "Use MCP-compatible tool contracts for interoperability.",
+    },
+    { layer: "Layer 4 · Tooling Enrichment", priority: "High", focus: "Ship 3-5 robust tools before expanding integrations." },
+    {
+      layer: "Layer 5 · Cognition Reasoning",
+      priority: "High",
+      focus: "Guardrails, confidence scoring, and graceful recovery paths.",
+    },
+    {
+      layer: "Layer 6 · Memory Personalization",
+      priority: complexity === "single" ? "Medium" : "High",
+      focus: "Store context needed for continuity and user personalization.",
+    },
+    { layer: "Layer 8 · Ops Governance", priority: "High", focus: "Audit logs, privacy filters, and human-in-the-loop escalation." },
+  ];
+
+  const promptTemplate = [
+    "You are an agent workflow specialist.",
+    "",
+    `GOAL: ${outcome}`,
+    `PROBLEM: ${problem}`,
+    `SUCCESS METRIC: ${successMetric}`,
+    "",
+    "RULES:",
+    "- Follow the JSON output schema exactly.",
+    "- Never fabricate data; return explicit unknown fields when needed.",
+    "- Escalate if confidence < 70 or critical data is missing.",
+    "",
+    "OUTPUT:",
+    "{",
+    '  "plan": "string",',
+    '  "actions": ["string"],',
+    '  "risks": ["string"],',
+    '  "confidence": "0-100"',
+    "}",
+  ].join("\n");
+
+  return {
+    architecture,
+    scopeStatement,
+    nineStepPlan,
+    layerPriorities,
+    promptTemplate,
+  };
+}
+
+function buildPrdDraft({
+  productName,
+  problem,
+  hypothesis,
+  scopeInput,
+  nonGoalsInput,
+  metricInput,
+  rolloutInput,
+}: {
+  productName: string;
+  problem: string;
+  hypothesis: string;
+  scopeInput: string;
+  nonGoalsInput: string;
+  metricInput: string;
+  rolloutInput: string;
+}): PrdDraft {
+  const scope = scopeInput
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const nonGoals = nonGoalsInput
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const rollout = rolloutInput
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const parsedMetrics = metricInput
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [metric, target, guardrail] = line.split("|").map((part) => part.trim());
+      return {
+        metric: metric || "Primary KPI",
+        target: target || "Define target",
+        guardrail: guardrail || "Define guardrail",
+      };
+    });
+
+  const metrics = parsedMetrics.length
+    ? parsedMetrics
+    : [{ metric: "Activation rate", target: ">= +10% vs baseline", guardrail: "No increase in churn >2%" }];
+
+  const executiveSummary = `${productName} targets "${problem}" with a clear hypothesis: ${hypothesis}. This PRD locks scope, success criteria, and rollout gates so the team can ship with measurable outcomes rather than vague intent.`;
+
+  const risks = [
+    "Ambiguous behavior contracts causing implementation drift.",
+    "Metric movement without causal confidence from weak experiment design.",
+    "Rollout without a clear kill switch owner.",
+  ];
+
+  const markdown = [
+    `# PRD: ${productName}`,
+    "",
+    "## Opportunity Framing",
+    `- Core Problem: ${problem}`,
+    `- Working Hypothesis: ${hypothesis}`,
+    "- Strategy Fit: Supports high-confidence delivery with measurable business impact.",
+    "",
+    "## Scope",
+    ...scope.map((s) => `- ${s}`),
+    "",
+    "## Non-Goals",
+    ...nonGoals.map((n) => `- ${n}`),
+    "",
+    "## Success Metrics",
+    ...metrics.map((m) => `- ${m.metric}: Target ${m.target}; Guardrail ${m.guardrail}`),
+    "",
+    "## Rollout Plan",
+    ...rollout.map((r) => `- ${r}`),
+    "",
+    "## Risk Management",
+    ...risks.map((r) => `- ${r}`),
+    "",
+    "## Ownership",
+    "- Product: PM Owner",
+    "- Engineering: Tech Lead",
+    "- Launch Decision: PM + Eng + Design at ramp gates",
+  ].join("\n");
+
+  return {
+    title: `PRD: ${productName}`,
+    executiveSummary,
+    scope,
+    nonGoals,
+    metrics,
+    rollout,
+    risks,
+    markdown,
+  };
+}
+
+function buildPromptAudit({
+  prompt,
+  failureModesInput,
+  targetModel,
+}: {
+  prompt: string;
+  failureModesInput: string;
+  targetModel: string;
+}): PromptAudit {
+  const failures = failureModesInput
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const topWeaknesses = [
+    failures[0] || "Soft instructions without hard constraints.",
+    failures[1] || "No explicit edge-case behavior.",
+    failures[2] || "Output format not strict enough for production parsing.",
+  ];
+
+  const styleHint =
+    targetModel === "Claude"
+      ? "Use XML sections for constraints and tasks."
+      : targetModel === "GPT-4"
+        ? "Use strict JSON contract with required keys."
+        : "Use compact markdown + bullet constraints.";
+
+  const optimizedPrompt = [
+    "SYSTEM ROLE: You are a production AI assistant for a single, clearly defined task.",
+    "",
+    "HARD CONSTRAINTS (NEVER):",
+    `- ${topWeaknesses[0]}`,
+    `- ${topWeaknesses[1]}`,
+    "- Return uncertain claims as UNKNOWN instead of guessing.",
+    "",
+    "REQUIRED BEHAVIORS (ALWAYS):",
+    "- Follow output schema exactly.",
+    "- Ask one clarifying question if required input is missing.",
+    "- Keep response concise and actionable.",
+    "",
+    `MODEL FORMAT STRATEGY: ${styleHint}`,
+    "",
+    "OUTPUT SCHEMA:",
+    "{",
+    '  "answer": "string",',
+    '  "confidence": "0-100",',
+    '  "next_step": "string"',
+    "}",
+    "",
+    "INPUT CONTEXT:",
+    prompt.trim() || "[Provide user task context here]",
+  ].join("\n");
+
+  const before = Math.max(80, prompt.split(/\s+/).filter(Boolean).length * 1.3);
+  const after = Math.max(60, Math.round(before * 0.72));
+  const reductionPct = Math.round(((before - after) / before) * 100);
+
+  return {
+    topWeaknesses,
+    optimizedPrompt,
+    evalPlan: [
+      "20% happy path tests (standard user requests).",
+      "60% edge case tests (ambiguous, malformed, multilingual input).",
+      "20% adversarial tests (prompt injection, policy-bypass attempts).",
+      "Track format compliance, safety escapes, and latency per run.",
+    ],
+    tokenEstimate: {
+      before,
+      after,
+      reductionPct,
+    },
   };
 }
 
@@ -694,6 +989,527 @@ function SkillIdeaValidator({
   );
 }
 
+function SkillAgentWorkflow({
+  onLog,
+}: {
+  onLog: (line: string) => void;
+}) {
+  const [problem, setProblem] = useState("Research Play Store category leaders and generate a PRD-ready opportunity report.");
+  const [outcome, setOutcome] = useState("A ranked top-3 opportunity output with implementation-ready scope.");
+  const [constraints, setConstraints] = useState("Single operator, India-first market context, low compute budget.");
+  const [successMetric, setSuccessMetric] = useState("Research report completeness >90% with reproducible workflow in under 15 minutes.");
+  const [complexity, setComplexity] = useState<WorkflowComplexity>("multi");
+  const [isDesigning, setIsDesigning] = useState(false);
+  const [blueprint, setBlueprint] = useState<WorkflowBlueprint | null>(null);
+
+  const generateWorkflow = () => {
+    setIsDesigning(true);
+    onLog("[Agent Workflow] Designing architecture blueprint from skill framework...");
+    window.setTimeout(() => {
+      setBlueprint(
+        buildWorkflowBlueprint({
+          problem,
+          outcome,
+          constraints,
+          successMetric,
+          complexity,
+        }),
+      );
+      setIsDesigning(false);
+      onLog("[Agent Workflow] 9-step + 8-layer blueprint ready.");
+    }, 1500);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p className="mb-2 text-xs uppercase tracking-[0.2em] text-violet-200">Agent Workflow Designer</p>
+        <h2 className="text-xl font-semibold">System Architecture Panel</h2>
+        <p className="mt-1 text-sm text-white/70">
+          Source loaded from <code>/Users/joy/Downloads/agent-workflow.skill</code> (9-step process + 8-layer model).
+        </p>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+          <h3 className="mb-3 font-semibold">Problem Definition</h3>
+          <div className="space-y-3">
+            <textarea
+              value={problem}
+              onChange={(e) => setProblem(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="What problem should the agent workflow solve?"
+            />
+            <textarea
+              value={outcome}
+              onChange={(e) => setOutcome(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="What concrete outcome is required?"
+            />
+            <textarea
+              value={constraints}
+              onChange={(e) => setConstraints(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Constraints: budget, timeline, integrations, resources"
+            />
+            <input
+              value={successMetric}
+              onChange={(e) => setSuccessMetric(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Success metric"
+            />
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/10 bg-black/30 p-2 text-xs">
+              {[
+                { id: "single" as WorkflowComplexity, label: "Single Agent" },
+                { id: "multi" as WorkflowComplexity, label: "Multi-Agent" },
+                { id: "integration" as WorkflowComplexity, label: "Integration" },
+              ].map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => setComplexity(option.id)}
+                  className={clsx(
+                    "rounded-lg border px-2 py-1.5 transition",
+                    complexity === option.id
+                      ? "border-violet-300/60 bg-violet-500/20"
+                      : "border-white/10 bg-white/[0.03] hover:border-white/25",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={generateWorkflow}
+            disabled={isDesigning}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+          >
+            {isDesigning ? <Loader2 size={16} className="animate-spin" /> : <GitBranch size={16} />}
+            Generate Workflow
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+          <h3 className="mb-2 font-semibold">Architecture Snapshot</h3>
+          {!blueprint ? (
+            <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+              Run workflow generation to produce scoped architecture, step plan, and prompt template.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-indigo-300/30 bg-indigo-500/10 p-3">
+                <p className="text-xs uppercase tracking-[0.15em] text-indigo-100/80">Recommended Architecture</p>
+                <p className="mt-1 text-lg font-semibold">{blueprint.architecture}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80">
+                {blueprint.scopeStatement}
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80">
+                <p className="text-xs uppercase tracking-[0.12em] text-white/60">Decision Tree Hint</p>
+                <p className="mt-1">
+                  {complexity === "single" &&
+                    "Use one agent first; only split roles after proving deterministic reliability."}
+                  {complexity === "multi" &&
+                    "Separate research, analysis, writing, and QA roles with simple handoff payloads."}
+                  {complexity === "integration" &&
+                    "Prioritize tool protocol contracts and resilient API integration before scaling agent count."}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {blueprint && (
+        <>
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-3 font-semibold">9-Step Build Plan</h3>
+            <div className="grid gap-2 lg:grid-cols-3">
+              {blueprint.nineStepPlan.map((item) => (
+                <div key={item.step} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-sm font-semibold">{item.step}</p>
+                  <p className="mt-1 text-xs text-white/70">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <h3 className="mb-3 font-semibold">8-Layer Priorities</h3>
+              <div className="space-y-2">
+                {blueprint.layerPriorities.map((layer) => (
+                  <div key={layer.layer} className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium">{layer.layer}</p>
+                      <span
+                        className={clsx(
+                          "rounded-full px-2 py-0.5 text-xs",
+                          layer.priority === "High"
+                            ? "bg-rose-500/20 text-rose-200"
+                            : layer.priority === "Medium"
+                              ? "bg-amber-500/20 text-amber-200"
+                              : "bg-emerald-500/20 text-emerald-200",
+                        )}
+                      >
+                        {layer.priority}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-white/70">{layer.focus}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <h3 className="mb-2 font-semibold">System Prompt Scaffold</h3>
+              <pre className="h-[360px] overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs leading-6 text-white/90">
+                {blueprint.promptTemplate}
+              </pre>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SkillProductIntelligence({
+  onLog,
+}: {
+  onLog: (line: string) => void;
+}) {
+  const [productName, setProductName] = useState("PlayIntel Copilot");
+  const [problem, setProblem] = useState("Founders lack decision-grade Play Store opportunity specs before building.");
+  const [hypothesis, setHypothesis] = useState("A gated research-to-PRD workflow will reduce false-start builds and improve launch quality.");
+  const [scopeInput, setScopeInput] = useState(
+    "India-only market research mode\nTop-3 opportunity ranking with confidence\nPRD generation after explicit initialization gate",
+  );
+  const [nonGoalsInput, setNonGoalsInput] = useState(
+    "Global market coverage in v1\nAutomatic full app code generation\nMulti-user collaboration and auth",
+  );
+  const [metricInput, setMetricInput] = useState(
+    "Research-to-PRD completion rate | >= 60% | No session error rate above 5%\nTime to first opportunity report | <= 4 min | No critical data omissions",
+  );
+  const [rolloutInput, setRolloutInput] = useState(
+    "Week 1: Internal alpha at 5% usage\nWeek 2: Expand to trusted founders cohort at 20%\nWeek 3: Ramp to 50% if guardrails hold",
+  );
+  const [isDrafting, setIsDrafting] = useState(false);
+  const [draft, setDraft] = useState<PrdDraft | null>(null);
+
+  const generatePrd = () => {
+    setIsDrafting(true);
+    onLog("[Product Intelligence] Generating decision-first PRD draft...");
+    window.setTimeout(() => {
+      setDraft(
+        buildPrdDraft({
+          productName,
+          problem,
+          hypothesis,
+          scopeInput,
+          nonGoalsInput,
+          metricInput,
+          rolloutInput,
+        }),
+      );
+      setIsDrafting(false);
+      onLog("[Product Intelligence] PRD draft generated with rollout + risk controls.");
+    }, 1500);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p className="mb-2 text-xs uppercase tracking-[0.2em] text-violet-200">Product Intelligence · PRD Writer</p>
+        <h2 className="text-xl font-semibold">Decision-First PRD Studio</h2>
+        <p className="mt-1 text-sm text-white/70">
+          Source: <code>/Users/joy/Downloads/prd-writer.skill</code>
+        </p>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+          <h3 className="mb-2 font-semibold">PRD Inputs</h3>
+          <div className="space-y-3">
+            <input
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Product name"
+            />
+            <textarea
+              value={problem}
+              onChange={(e) => setProblem(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Core problem"
+            />
+            <textarea
+              value={hypothesis}
+              onChange={(e) => setHypothesis(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Working hypothesis"
+            />
+            <textarea
+              value={scopeInput}
+              onChange={(e) => setScopeInput(e.target.value)}
+              className="h-24 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="In-scope items (one per line)"
+            />
+            <textarea
+              value={nonGoalsInput}
+              onChange={(e) => setNonGoalsInput(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Non-goals (one per line)"
+            />
+            <textarea
+              value={metricInput}
+              onChange={(e) => setMetricInput(e.target.value)}
+              className="h-24 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Metrics as: metric | target | guardrail"
+            />
+            <textarea
+              value={rolloutInput}
+              onChange={(e) => setRolloutInput(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Rollout steps (one per line)"
+            />
+          </div>
+          <button
+            onClick={generatePrd}
+            disabled={isDrafting}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+          >
+            {isDrafting ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+            Generate PRD
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+          <h3 className="mb-2 font-semibold">Execution Snapshot</h3>
+          {!draft && (
+            <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+              Generate a PRD to view structured decisions, metrics, rollout gates, and risk controls.
+            </div>
+          )}
+          {draft && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-indigo-300/35 bg-indigo-500/10 p-3 text-sm text-indigo-100">
+                {draft.executiveSummary}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs text-white/60">Scope Items</p>
+                  <p className="mt-1 text-lg font-semibold">{draft.scope.length}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs text-white/60">Success Metrics</p>
+                  <p className="mt-1 text-lg font-semibold">{draft.metrics.length}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs text-white/60">Rollout Gates</p>
+                  <p className="mt-1 text-lg font-semibold">{draft.rollout.length}</p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/75">
+                PRD quality reminders: concrete thresholds, explicit non-goals, kill-switch owner, and review cadence.
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {draft && (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-2 flex items-center gap-2 font-semibold">
+              <Gauge size={16} /> Metric Contract
+            </h3>
+            <div className="space-y-2 text-sm">
+              {draft.metrics.map((m) => (
+                <div key={`${m.metric}-${m.target}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="font-medium">{m.metric}</p>
+                  <p className="mt-1 text-white/75">Target: {m.target}</p>
+                  <p className="mt-1 text-white/75">Guardrail: {m.guardrail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-2 flex items-center gap-2 font-semibold">
+              <Rocket size={16} /> Rollout + Risks
+            </h3>
+            <div className="space-y-2 text-sm">
+              {draft.rollout.map((step) => (
+                <p key={step} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-white/80">
+                  {step}
+                </p>
+              ))}
+              <div className="rounded-xl border border-rose-300/30 bg-rose-500/10 p-3">
+                <p className="font-medium text-rose-100">Primary Risk Cluster</p>
+                <ul className="mt-1 list-disc pl-5 text-xs text-rose-100/90">
+                  {draft.risks.map((risk) => (
+                    <li key={risk}>{risk}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {draft && (
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+          <h3 className="mb-2 flex items-center gap-2 font-semibold">
+            <ListChecks size={16} /> PRD Markdown Draft
+          </h3>
+          <pre className="max-h-[360px] overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs leading-6 text-white/90">
+            {draft.markdown}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SkillPromptEngineering({
+  onLog,
+}: {
+  onLog: (line: string) => void;
+}) {
+  const [targetModel, setTargetModel] = useState("GPT-4");
+  const [prompt, setPrompt] = useState(
+    "Help users find Play Store opportunities and provide recommendations with details and metrics.",
+  );
+  const [failureModes, setFailureModes] = useState(
+    "Too verbose output\nNo strict format consistency\nHallucinates unsupported market stats",
+  );
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [audit, setAudit] = useState<PromptAudit | null>(null);
+
+  const optimizePrompt = () => {
+    setIsOptimizing(true);
+    onLog(`[Prompt Engineering] Optimizing prompt for ${targetModel}...`);
+    window.setTimeout(() => {
+      setAudit(
+        buildPromptAudit({
+          prompt,
+          failureModesInput: failureModes,
+          targetModel,
+        }),
+      );
+      setIsOptimizing(false);
+      onLog("[Prompt Engineering] Optimized prompt and eval plan generated.");
+    }, 1200);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p className="mb-2 text-xs uppercase tracking-[0.2em] text-violet-200">Prompt Engineering</p>
+        <h2 className="text-xl font-semibold">Production Prompt Optimizer</h2>
+        <p className="mt-1 text-sm text-white/70">
+          Source: <code>/Users/joy/Downloads/prompt-engineering.skill</code>
+        </p>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+          <h3 className="mb-2 font-semibold">Prompt Input</h3>
+          <div className="space-y-3">
+            <select
+              value={targetModel}
+              onChange={(e) => setTargetModel(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+            >
+              <option>GPT-4</option>
+              <option>Claude</option>
+              <option>GPT-3.5</option>
+            </select>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="h-32 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Current prompt"
+            />
+            <textarea
+              value={failureModes}
+              onChange={(e) => setFailureModes(e.target.value)}
+              className="h-24 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Top failure modes, one per line"
+            />
+          </div>
+          <button
+            onClick={optimizePrompt}
+            disabled={isOptimizing}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+          >
+            {isOptimizing ? <Loader2 size={16} className="animate-spin" /> : <WandSparkles size={16} />}
+            Optimize Prompt
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+          <h3 className="mb-2 font-semibold">Optimization Result</h3>
+          {!audit && (
+            <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+              Run optimization to generate hard constraints, cost-aware prompt rewrite, and evaluation mix.
+            </div>
+          )}
+          {audit && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-indigo-300/30 bg-indigo-500/10 p-3">
+                <p className="text-xs uppercase tracking-[0.15em] text-indigo-100/80">Top Weaknesses</p>
+                <ul className="mt-1 list-disc pl-5 text-sm text-indigo-100/95">
+                  {audit.topWeaknesses.map((weak) => (
+                    <li key={weak}>{weak}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-center">
+                  <p className="text-xs text-white/60">Tokens Before</p>
+                  <p className="mt-1 font-semibold">{audit.tokenEstimate.before}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-center">
+                  <p className="text-xs text-white/60">Tokens After</p>
+                  <p className="mt-1 font-semibold">{audit.tokenEstimate.after}</p>
+                </div>
+                <div className="rounded-xl border border-emerald-300/30 bg-emerald-500/10 p-3 text-center">
+                  <p className="text-xs text-emerald-100/80">Reduction</p>
+                  <p className="mt-1 font-semibold text-emerald-100">{audit.tokenEstimate.reductionPct}%</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {audit && (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-2 flex items-center gap-2 font-semibold">
+              <Target size={16} /> Eval Plan
+            </h3>
+            <div className="space-y-2 text-sm">
+              {audit.evalPlan.map((line) => (
+                <p key={line} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-white/80">
+                  {line}
+                </p>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-2 font-semibold">Optimized Prompt</h3>
+            <pre className="max-h-[320px] overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs leading-6 text-white/90">
+              {audit.optimizedPrompt}
+            </pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SkillPlaceholder({ title, summary }: { title: string; summary: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -715,6 +1531,9 @@ export default function Home() {
     "[Status] LinkedIn Post Writer: Online (/Users/joy/pm-claude-skills/skills/linkedin-post-writer/SKILL.md)",
     "[Status] Play Store Research Skill: Online (/Users/joy/Opportunity Research/skills/play-store-opportunity-research)",
     "[Status] Idea Validator: Online (/Users/joy/pm-claude-skills/skills/idea-validator/SKILL.md)",
+    "[Status] Agent Workflow Designer: Online (/Users/joy/Downloads/agent-workflow.skill)",
+    "[Status] PRD Writer: Online (/Users/joy/Downloads/prd-writer.skill)",
+    "[Status] Prompt Engineering: Online (/Users/joy/Downloads/prompt-engineering.skill)",
   ]);
 
   const pushLog = (line: string) => {
@@ -808,6 +1627,15 @@ export default function Home() {
               <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/35 bg-amber-500/15 px-3 py-1 text-xs text-amber-200">
                 <ShieldCheck size={13} /> Idea Validator: Online
               </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-sky-300/35 bg-sky-500/15 px-3 py-1 text-xs text-sky-200">
+                <GitBranch size={13} /> Agent Workflow: Online
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/35 bg-cyan-500/15 px-3 py-1 text-xs text-cyan-200">
+                <FileText size={13} /> PRD Writer: Online
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-fuchsia-300/35 bg-fuchsia-500/15 px-3 py-1 text-xs text-fuchsia-200">
+                <WandSparkles size={13} /> Prompt Engineering: Online
+              </span>
               <button
                 onClick={() => setCommandOpen(true)}
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs"
@@ -829,12 +1657,9 @@ export default function Home() {
                 {activeSkill === "market" && <SkillMarketResearch onLog={pushLog} />}
                 {activeSkill === "content" && <SkillContentEngine onLog={pushLog} />}
                 {activeSkill === "validator" && <SkillIdeaValidator onLog={pushLog} />}
-                {activeSkill === "product" && (
-                  <SkillPlaceholder
-                    title="Product Intelligence"
-                    summary="Roadmap and product signal analysis workspace."
-                  />
-                )}
+                {activeSkill === "workflow" && <SkillAgentWorkflow onLog={pushLog} />}
+                {activeSkill === "prompt" && <SkillPromptEngineering onLog={pushLog} />}
+                {activeSkill === "product" && <SkillProductIntelligence onLog={pushLog} />}
                 {activeSkill === "settings" && (
                   <SkillPlaceholder
                     title="Settings"

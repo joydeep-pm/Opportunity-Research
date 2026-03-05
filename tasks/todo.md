@@ -154,3 +154,60 @@
   - Added global status chip and terminal boot log for local `idea-validator` skill context.
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
+
+## Agent Workflow Panel Plan
+- [x] Parse `agent-workflow.skill` content and map the relevant UX structure.
+- [x] Add a new `Agent Workflow` panel to the Knowledge Work Center navigation and command palette.
+- [x] Build an interactive workflow-designer view using the skill's 9-step and 8-layer framework.
+- [x] Add runtime status/log entries for the new panel in the global context and terminal.
+- [x] Verify root build and document the integration results.
+
+## Agent Workflow Panel Review
+- Skill package source inspected:
+  - `/Users/joy/Downloads/agent-workflow.skill` (`SKILL.md` + references)
+- Integration completed in:
+  - `src/app/page.tsx`
+- Added capabilities:
+  - New `Agent Workflow` workspace in sidebar + Command+K search.
+  - Interactive workflow designer panel with:
+    - problem/outcome/constraints/success-metric inputs,
+    - complexity selector (`single`, `multi`, `integration`),
+    - generated architecture recommendation,
+    - generated 9-step implementation plan,
+    - generated 8-layer priority map,
+    - system prompt scaffold block.
+  - Global status chip + terminal startup log entry for the workflow skill source.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
+
+## Product + Prompt Skills Plan
+- [x] Parse `prd-writer.skill` and `prompt-engineering.skill` and map UX behaviors.
+- [x] Upgrade existing `Product Intelligence` panel to include a functional PRD Writer flow.
+- [x] Add a dedicated `Prompt Engineering` panel for prompt optimization and evaluation planning.
+- [x] Wire both skills into sidebar, command palette, global status, and terminal logs.
+- [x] Verify root build and document integration evidence.
+
+## Product + Prompt Skills Review
+- Skill packages used:
+  - `/Users/joy/Downloads/prd-writer.skill`
+  - `/Users/joy/Downloads/prompt-engineering.skill`
+- Integrated in unified app:
+  - `src/app/page.tsx`
+- New implementations:
+  - Replaced `Product Intelligence` placeholder with `SkillProductIntelligence`:
+    - decision-first PRD input form,
+    - generated PRD sections (opportunity framing, scope, non-goals, metrics, rollout, risks),
+    - metric contract + rollout/risk views,
+    - markdown PRD output panel.
+  - Added `SkillPromptEngineering`:
+    - target model selector,
+    - prompt + failure mode inputs,
+    - generated hard-constraint prompt rewrite,
+    - 20/60/20 eval plan,
+    - token estimate and reduction summary.
+  - Added shell-level integration:
+    - sidebar/command-palette route for Prompt Engineering,
+    - global status chips for PRD Writer and Prompt Engineering,
+    - terminal startup logs for both skill sources.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
