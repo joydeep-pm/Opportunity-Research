@@ -25,27 +25,28 @@ const categories = [
   { name: 'Business', icon: TrendingUp },
 ]
 
-const timelineSteps = ['Scanning Play Store', 'Analyzing Gaps', 'Drafting Opportunities']
+const marketScope = 'India (IN)'
+const timelineSteps = ['Scanning India Play Store', 'Analyzing India Gaps', 'Drafting India Opportunities']
 
 const marketApps = [
-  { rank: 1, name: 'Habitica', installs: '10M+', rating: '4.2', reviews: '213K' },
-  { rank: 2, name: 'Loop Habit Tracker', installs: '5M+', rating: '4.7', reviews: '112K' },
-  { rank: 3, name: 'Fabulous Daily Planner', installs: '10M+', rating: '4.4', reviews: '540K' },
-  { rank: 4, name: 'HabitNow', installs: '1M+', rating: '4.8', reviews: '89K' },
-  { rank: 5, name: 'Productive', installs: '5M+', rating: '4.5', reviews: '148K' },
-  { rank: 6, name: 'Taskito', installs: '1M+', rating: '4.6', reviews: '32K' },
+  { rank: 1, name: 'Habits with Rewire', installs: '1M+', rating: '4.4', reviews: '71K' },
+  { rank: 2, name: 'Do It Now RPG To Do List', installs: '1M+', rating: '4.6', reviews: '52K' },
+  { rank: 3, name: 'Taskito', installs: '1M+', rating: '4.6', reviews: '32K' },
+  { rank: 4, name: 'Microsoft To Do', installs: '10M+', rating: '4.6', reviews: '372K' },
+  { rank: 5, name: 'TickTick', installs: '5M+', rating: '4.7', reviews: '137K' },
+  { rank: 6, name: 'Loop Habit Tracker', installs: '5M+', rating: '4.7', reviews: '112K' },
 ]
 
 const gapClusters = [
   {
     title: 'Onboarding Friction',
     count: 392,
-    details: 'Users report setup overload and unclear first success moments.',
+    details: 'India users report setup overload and unclear first success moments.',
   },
   {
     title: 'Reminder Noise',
     count: 268,
-    details: 'Notifications feel repetitive and not context-aware.',
+    details: 'Reminders feel repetitive and not context-aware for local day rhythms.',
   },
   {
     title: 'Weak Personalization',
@@ -55,38 +56,38 @@ const gapClusters = [
   {
     title: 'Sync Reliability',
     count: 171,
-    details: 'Streak resets and missing logs during device switches.',
+    details: 'Streak resets and missing logs during device switches on low-connectivity sessions.',
   },
 ]
 
 const opportunities = [
   {
     id: 1,
-    name: 'AI Habit Copilot for Shift Workers',
+    name: 'AI Habit Copilot for Indian Shift Workers',
     confidence: 92,
     difficulty: 'Medium',
     pitch: 'Adaptive routines tuned for irregular sleep and work schedules.',
   },
   {
     id: 2,
-    name: 'Offline-first Micro Habit Engine',
+    name: 'Offline-first Micro Habit Engine for India',
     confidence: 84,
     difficulty: 'Low',
     pitch: 'Fast local habit capture with resilient sync reconciliation.',
   },
   {
     id: 3,
-    name: 'Goal-to-Reward Behavioral Loop',
+    name: 'India-first Goal-to-Reward Behavioral Loop',
     confidence: 78,
     difficulty: 'High',
     pitch: 'AI-driven reinforcement with personalized reward timing.',
   },
 ]
 
-const prdMarkdown = `# PlayIntel Opportunity PRD
+const prdMarkdown = `# PlayIntel India Opportunity PRD
 
 ## Strategy
-Build a focused AI habit product for users with non-linear schedules. Position on adaptability, low-friction logging, and trust-first insight quality.
+Build a focused AI habit product for Indian users with non-linear schedules. Position on adaptability, low-friction logging, and trust-first insight quality.
 
 ## User Personas
 1. **Shift Specialist:** Variable routine, high volatility, wants lightweight consistency.
@@ -149,7 +150,7 @@ function ConfidenceRing({ value }) {
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState('Finance')
-  const [query, setQuery] = useState('Credit card optimization for rewards tracking')
+  const [query, setQuery] = useState('AI habit tracker for Indian users with irregular schedules')
   const [activeTab, setActiveTab] = useState('market')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [progressStep, setProgressStep] = useState(0)
@@ -190,12 +191,13 @@ function App() {
 
   const handleCategoryClick = (name) => {
     setSelectedCategory(name)
-    setQuery(`${name} niche opportunity in underserved Android segment`)
+    setQuery(`${name} niche opportunity in underserved Indian Android segment`)
   }
 
   const triggerDownload = () => {
     const payload = {
       generatedAt: new Date().toISOString(),
+      marketScope,
       category: selectedCategory,
       query,
       opportunities,
@@ -227,9 +229,15 @@ function App() {
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">Agentic Research Console</p>
             <h1 className="text-xl font-semibold">PlayIntel AI</h1>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
-            <ShieldCheck size={14} />
-            System Status: {statusLabel}
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-300/30 bg-indigo-400/10 px-3 py-1 text-xs font-medium text-indigo-200">
+              <Target size={14} />
+              Market Scope: {marketScope}
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
+              <ShieldCheck size={14} />
+              System Status: {statusLabel}
+            </div>
           </div>
         </div>
       </header>
@@ -243,6 +251,9 @@ function App() {
         >
           <p className="mb-3 text-xs uppercase tracking-[0.18em] text-white/60">Step 1</p>
           <h2 className="mb-4 text-2xl font-semibold">Discovery Panel</h2>
+          <p className="mb-4 inline-flex rounded-full border border-indigo-300/30 bg-indigo-400/10 px-3 py-1 text-xs text-indigo-100">
+            India-only research context is locked.
+          </p>
           <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {categories.map((cat, idx) => {
               const Icon = cat.icon
@@ -277,7 +288,7 @@ function App() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full rounded-2xl border border-white/10 bg-black/30 px-10 py-3 text-sm text-white placeholder:text-white/40 focus:border-indigo-300/55 focus:outline-none"
-                placeholder="Enter a niche or problem space..."
+                placeholder="Enter a niche or problem space for India..."
               />
             </div>
             <Button
@@ -378,6 +389,9 @@ function App() {
                   ))}
                 </tbody>
               </table>
+              <p className="border-t border-white/10 bg-black/20 px-4 py-2 text-xs text-white/55">
+                Sample map scoped to India Play Store signals.
+              </p>
             </div>
           )}
 
@@ -463,7 +477,9 @@ function App() {
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-white/50">Step 4</p>
                   <h2 className="text-2xl font-semibold">PRD Generator</h2>
-                  <p className="mt-1 text-sm text-white/60">Editorial draft for: {selectedOpportunity.name}</p>
+                  <p className="mt-1 text-sm text-white/60">
+                    Editorial India-only draft for: {selectedOpportunity.name}
+                  </p>
                 </div>
                 <Button onClick={() => setOpenPrd(false)} className="rounded-full p-2">
                   <X size={16} />
@@ -472,7 +488,7 @@ function App() {
 
               <article className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-white/[0.02] px-8 py-10">
                 <div className="prose prose-invert prose-headings:font-semibold prose-h1:text-3xl prose-h2:mt-8 prose-p:text-white/80">
-                  <p className="text-xs uppercase tracking-[0.16em] text-indigo-200">PlayIntel Editorial PRD</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-indigo-200">PlayIntel India Editorial PRD</p>
                   {prdMarkdown.split('\n').map((line, idx) => {
                     if (line.startsWith('# ')) return <h1 key={idx}>{line.replace('# ', '')}</h1>
                     if (line.startsWith('## ')) return <h2 key={idx}>{line.replace('## ', '')}</h2>
