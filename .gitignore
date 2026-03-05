@@ -1,4 +1,24 @@
-outputs/
+# dependencies
+node_modules/
+
+# next build
+.next/
+out/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env
+.env*
+
+# python artifacts
 __pycache__/
 *.pyc
+
+# project outputs
+outputs/
+
+# misc
 .DS_Store

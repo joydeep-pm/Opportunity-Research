@@ -106,3 +106,30 @@
   - `knowledge-work-center/src/app/globals.css`
 - Verification:
   - `cd '/Users/joy/Opportunity Research/knowledge-work-center' && npm run build` passed.
+
+## Single-Project Merge Plan (Root Next.js)
+- [x] Make repository root the single deployable Next.js 14 app.
+- [x] Simplify Vercel config to standard root Next.js detection/build.
+- [x] Preserve previous Flask/Vite implementations as legacy artifacts (non-deployment).
+- [x] Run root build verification and document deployment expectations.
+- [x] Capture lessons learned in `tasks/lessons.md` for future structure decisions.
+
+## Single-Project Merge Review
+- Root Next.js app files promoted from `knowledge-work-center/` to repository root:
+  - `src/`
+  - `package.json`
+  - `package-lock.json`
+  - `next.config.mjs`
+  - `postcss.config.mjs`
+  - `tailwind.config.ts`
+  - `tsconfig.json`
+  - `.eslintrc.json`
+  - `next-env.d.ts`
+- Root deployment config simplified:
+  - `vercel.json` now only declares Next.js framework.
+- Repository clarity improvements:
+  - Added root `README.md` documenting single deploy target and legacy folders.
+  - Updated root `.gitignore` for Next.js + project outputs.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm install` succeeded.
+  - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
