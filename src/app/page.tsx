@@ -260,7 +260,8 @@ function SkillContentEngine({
           <textarea
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
-            className="h-52 w-full rounded-xl border border-white/10 bg-[radial-gradient(circle_at_20%_20%,rgba(120,87,255,0.25),transparent_50%),radial-gradient(circle_at_80%_10%,rgba(96,59,186,0.2),transparent_50%),rgba(8,8,12,0.8)] px-3 py-3 text-sm outline-none focus:border-violet-300/60"
+            className="h-52 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-3 text-sm text-zinc-100 caret-violet-300 outline-none placeholder:text-zinc-400 focus:border-violet-300/60"
+            placeholder="Write your rough idea here..."
           />
           <button
             onClick={() => {
