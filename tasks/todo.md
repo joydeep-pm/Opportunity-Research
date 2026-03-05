@@ -133,3 +133,24 @@
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm install` succeeded.
   - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
+
+## Idea Validator Integration Plan
+- [x] Add `Idea Validator` to sidebar navigation and command palette switching.
+- [x] Build a dedicated Idea Validator workspace panel with input form, scored validation output, and recommendation blocks.
+- [x] Add Idea Validator status visibility in header and terminal startup logs.
+- [x] Verify the unified app still builds successfully from repository root.
+- [x] Add a lesson entry for avoiding skill omission when expanding the workspace shell.
+
+## Idea Validator Integration Review
+- Updated unified shell in `src/app/page.tsx`:
+  - Added new skill route: `Idea Validator`.
+  - Added sidebar + command palette support through shared `sidebarItems`.
+  - Added dedicated `SkillIdeaValidator` panel with:
+    - founder input capture (idea, audience, current solution, edge, monetization),
+    - 5-dimension scoring framework (Problem, Market, Differentiation, Feasibility, Viability),
+    - verdict output (`GO` / `ITERATE` / `STOP`),
+    - quick competitor scan table,
+    - killer questions and de-risking experiments.
+  - Added global status chip and terminal boot log for local `idea-validator` skill context.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).

@@ -5,6 +5,7 @@ import clsx from "clsx";
 import {
   BarChart3,
   BrainCircuit,
+  CheckCircle2,
   Command,
   FileText,
   Layers,
@@ -14,15 +15,44 @@ import {
   ShieldCheck,
   Sparkles,
   Terminal,
+  TriangleAlert,
   WandSparkles,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-type SkillId = "market" | "content" | "product" | "settings";
+type SkillId = "market" | "content" | "validator" | "product" | "settings";
+type ValidatorRating = "Strong" | "Moderate" | "Weak";
+
+type ValidatorDimension = {
+  name: string;
+  rating: ValidatorRating;
+  score: number;
+  reason: string;
+};
+
+type ValidatorReport = {
+  dimensions: ValidatorDimension[];
+  verdict: "GO" | "ITERATE" | "STOP";
+  verdictReason: string;
+  competitors: Array<{
+    name: string;
+    type: "Direct" | "Adjacent" | "Workaround";
+    pricing: string;
+    size: string;
+    weakness: string;
+  }>;
+  killerQuestions: string[];
+  experiments: Array<{
+    title: string;
+    cost: string;
+    signal: string;
+  }>;
+};
 
 const sidebarItems = [
   { id: "market" as SkillId, label: "Market Research", icon: BarChart3 },
   { id: "content" as SkillId, label: "Content Engine", icon: FileText },
+  { id: "validator" as SkillId, label: "Idea Validator", icon: ShieldCheck },
   { id: "product" as SkillId, label: "Product Intelligence", icon: BrainCircuit },
   { id: "settings" as SkillId, label: "Settings", icon: Settings },
 ];
@@ -66,6 +96,161 @@ function generateLinkedInDraft(idea: string) {
     "",
     "P.S. What's one process change that improved your output recently?",
   ].join("\n");
+}
+
+function ratingLabel(score: number): ValidatorRating {
+  if (score >= 3) return "Strong";
+  if (score === 2) return "Moderate";
+  return "Weak";
+}
+
+function buildCompetitorRows(idea: string) {
+  const lower = idea.toLowerCase();
+
+  if (lower.includes("habit") || lower.includes("fitness")) {
+    return [
+      { name: "HabitNow", type: "Direct" as const, pricing: "Freemium", size: "1M+ installs", weakness: "Generic routine logic" },
+      { name: "Loop Habit Tracker", type: "Direct" as const, pricing: "Free", size: "5M+ installs", weakness: "Limited AI adaptation" },
+      { name: "Spreadsheet + Reminders", type: "Workaround" as const, pricing: "Free", size: "Very common", weakness: "High manual effort" },
+    ];
+  }
+
+  if (lower.includes("linkedin") || lower.includes("content")) {
+    return [
+      { name: "Taplio", type: "Direct" as const, pricing: "$39/mo", size: "Large", weakness: "Generic tone for India audience" },
+      { name: "Jasper", type: "Adjacent" as const, pricing: "$49/mo", size: "Large", weakness: "Not LinkedIn-first workflow" },
+      { name: "Notion + Manual prompts", type: "Workaround" as const, pricing: "Low", size: "Common", weakness: "Inconsistent quality" },
+    ];
+  }
+
+  return [
+    { name: "Incumbent SaaS", type: "Direct" as const, pricing: "Mid-tier", size: "Established", weakness: "Slow onboarding and heavy UX" },
+    { name: "General-purpose AI", type: "Adjacent" as const, pricing: "Usage-based", size: "Massive", weakness: "No vertical specialization" },
+    { name: "DIY process stack", type: "Workaround" as const, pricing: "Free-Low", size: "Common", weakness: "Fragmented and error-prone" },
+  ];
+}
+
+function buildIdeaReport({
+  idea,
+  audience,
+  currentSolution,
+  builderEdge,
+  monetization,
+}: {
+  idea: string;
+  audience: string;
+  currentSolution: string;
+  builderEdge: string;
+  monetization: string;
+}): ValidatorReport {
+  const merged = `${idea} ${audience} ${currentSolution} ${builderEdge} ${monetization}`;
+  const specificAudience = audience.length > 25 && !/\beveryone|all users|all businesses|anyone\b/i.test(audience);
+  const frequencySignal = /\bdaily|weekly|habit|routine|recurring|shift|workflow\b/i.test(merged);
+  const hasWorkaround = currentSolution.length > 25;
+  const hasPricingSignal = /\b₹|\$|subscription|freemium|paid|monthly|annual|commission\b/i.test(monetization);
+  const hasDifferentiationSignal = /\bindia|tier|localized|segment|specific|first\b/i.test(idea + builderEdge);
+  const feasibilityRisk = /\bhardware|regulatory|license|medical device|banking license\b/i.test(merged);
+
+  const problemScore = frequencySignal ? 3 : idea.length > 45 ? 2 : 1;
+  const marketScore = Math.min(3, (hasWorkaround ? 2 : 1) + (hasPricingSignal ? 1 : 0));
+  const differentiationScore = Math.min(3, (hasDifferentiationSignal ? 2 : 1) + (builderEdge.length > 20 ? 1 : 0));
+  const feasibilityScore = feasibilityRisk ? 1 : /\bapi|mobile|web|assistant|ai\b/i.test(merged) ? 3 : 2;
+  const viabilityScore = Math.min(3, (hasPricingSignal ? 2 : 1) + (specificAudience ? 1 : 0));
+
+  const dimensions: ValidatorDimension[] = [
+    {
+      name: "Problem Severity",
+      score: problemScore,
+      rating: ratingLabel(problemScore),
+      reason:
+        problemScore >= 3
+          ? "Users appear to face this repeatedly. ASSUMPTION: frequency is at least weekly for the first segment."
+          : "Pain exists but frequency/cost signal is still soft. Validate time loss with interviews.",
+    },
+    {
+      name: "Market Evidence",
+      score: marketScore,
+      rating: ratingLabel(marketScore),
+      reason:
+        marketScore >= 3
+          ? "Alternatives and willingness to pay signals exist. ASSUMPTION: current workaround spend can be redirected."
+          : "Market proof is partial. Gather competitor pricing and user spend data before full commitment.",
+    },
+    {
+      name: "Solution Differentiation",
+      score: differentiationScore,
+      rating: ratingLabel(differentiationScore),
+      reason:
+        differentiationScore >= 3
+          ? "Wedge is clear for a focused segment. Defensibility can come from localized behavior data loops."
+          : "Differentiation is present but not durable yet. Refine one-sentence wedge and switching reason.",
+    },
+    {
+      name: "Feasibility",
+      score: feasibilityScore,
+      rating: ratingLabel(feasibilityScore),
+      reason:
+        feasibilityScore >= 3
+          ? "MVP looks buildable with common APIs and a small team in 4-6 weeks."
+          : "Delivery risk exists due to platform/regulatory complexity. Scope first release narrower.",
+    },
+    {
+      name: "Business Viability",
+      score: viabilityScore,
+      rating: ratingLabel(viabilityScore),
+      reason:
+        viabilityScore >= 3
+          ? "Monetization path exists and segment focus improves conversion potential."
+          : "Revenue path is plausible but weakly quantified. Validate willingness-to-pay before scaling.",
+    },
+  ];
+
+  const total = dimensions.reduce((sum, d) => sum + d.score, 0);
+  const weakCount = dimensions.filter((d) => d.rating === "Weak").length;
+  const verdict: ValidatorReport["verdict"] = total >= 13 && weakCount === 0 ? "GO" : total >= 10 ? "ITERATE" : "STOP";
+  const verdictReason =
+    verdict === "GO"
+      ? "Signal quality is high enough to justify a constrained MVP and fast validation sprint."
+      : verdict === "ITERATE"
+      ? "Promising direction, but 1-2 dimensions need stronger evidence before full build."
+      : "Core risks are too high right now; pivot scope or customer segment before investing in development.";
+
+  const weakDimensions = dimensions.filter((d) => d.rating !== "Strong").map((d) => d.name);
+
+  return {
+    dimensions,
+    verdict,
+    verdictReason,
+    competitors: buildCompetitorRows(idea),
+    killerQuestions: [
+      weakDimensions.includes("Market Evidence")
+        ? "Which exact competitor are users paying today, and what is the real replacement budget?"
+        : "What segment-specific proof point makes your wedge hard to copy in six months?",
+      weakDimensions.includes("Solution Differentiation")
+        ? "Why will the first 100 users switch from current tools this month, not someday?"
+        : "What unique data loop will strengthen your product after every user action?",
+      weakDimensions.includes("Business Viability")
+        ? "What price can the first customer approve without procurement friction?"
+        : "How many paying users are required to reach the first sustainable revenue milestone?",
+    ],
+    experiments: [
+      {
+        title: "10-customer problem interview sprint",
+        cost: "3-4 days, near-zero cash cost",
+        signal: "Strong if 7+ users describe current workaround pain and urgency without prompting.",
+      },
+      {
+        title: "Smoke-test landing page with pricing",
+        cost: "1 day, low ad spend",
+        signal: "Strong if sign-up conversion and pricing click-through exceed baseline benchmarks.",
+      },
+      {
+        title: "Manual concierge prototype",
+        cost: "1 week founder time",
+        signal: "Strong if users repeat usage weekly and request to keep access.",
+      },
+    ],
+  };
 }
 
 function SkillMarketResearch({
@@ -300,6 +485,215 @@ function SkillContentEngine({
   );
 }
 
+function SkillIdeaValidator({
+  onLog,
+}: {
+  onLog: (line: string) => void;
+}) {
+  const [idea, setIdea] = useState("AI habit coach for Indian shift workers with adaptive plans.");
+  const [audience, setAudience] = useState("Night-shift professionals in India at BPO and support teams (100-1000 employee companies).");
+  const [currentSolution, setCurrentSolution] = useState("They use generic reminder apps, spreadsheets, and WhatsApp accountability groups.");
+  const [builderEdge, setBuilderEdge] = useState("Team has prior behavior design and Android growth experience in India-first products.");
+  const [monetization, setMonetization] = useState("Freemium + ₹199/month premium for adaptive coaching and insight reports.");
+  const [isValidating, setIsValidating] = useState(false);
+  const [report, setReport] = useState<ValidatorReport | null>(null);
+
+  const runValidation = () => {
+    setIsValidating(true);
+    onLog("[Idea Validator] Running 5-dimension stress test...");
+    window.setTimeout(() => {
+      setReport(
+        buildIdeaReport({
+          idea,
+          audience,
+          currentSolution,
+          builderEdge,
+          monetization,
+        }),
+      );
+      setIsValidating(false);
+      onLog("[Idea Validator] Validation complete with verdict generated.");
+    }, 1800);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p className="mb-2 text-xs uppercase tracking-[0.2em] text-violet-200">Idea Validator</p>
+        <h2 className="text-xl font-semibold">Founder Stress-Test Console</h2>
+        <p className="mt-1 text-sm text-white/70">
+          Local reference: <code>/Users/joy/pm-claude-skills/skills/idea-validator/SKILL.md</code>
+        </p>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+          <h3 className="mb-2 font-semibold">Step 1 · Idea Inputs</h3>
+          <div className="space-y-3">
+            <textarea
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="One-sentence idea"
+            />
+            <textarea
+              value={audience}
+              onChange={(e) => setAudience(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Specific first customer segment"
+            />
+            <textarea
+              value={currentSolution}
+              onChange={(e) => setCurrentSolution(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="How users solve this today"
+            />
+            <textarea
+              value={builderEdge}
+              onChange={(e) => setBuilderEdge(e.target.value)}
+              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Why you can win this market"
+            />
+            <input
+              value={monetization}
+              onChange={(e) => setMonetization(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              placeholder="Monetization model"
+            />
+          </div>
+          <button
+            onClick={runValidation}
+            disabled={isValidating}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+          >
+            {isValidating ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+            Validate Idea
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+          <h3 className="mb-2 font-semibold">Step 2 · Verdict</h3>
+          {!report && (
+            <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+              Run validation to generate the full scorecard, competitive scan, and de-risking experiments.
+            </div>
+          )}
+          {report && (
+            <div className="space-y-3">
+              <div
+                className={clsx(
+                  "rounded-xl border p-3",
+                  report.verdict === "GO"
+                    ? "border-emerald-300/40 bg-emerald-500/10"
+                    : report.verdict === "ITERATE"
+                      ? "border-amber-300/40 bg-amber-500/10"
+                      : "border-rose-300/40 bg-rose-500/10",
+                )}
+              >
+                <p className="text-xs uppercase tracking-[0.15em] text-white/70">Verdict</p>
+                <p className="mt-1 text-lg font-semibold">{report.verdict}</p>
+                <p className="mt-1 text-sm text-white/80">{report.verdictReason}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80">
+                {report.verdict === "STOP" ? (
+                  <span className="inline-flex items-center gap-2">
+                    <TriangleAlert size={15} className="text-rose-200" />
+                    Recommend pivoting segment before writing MVP scope.
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <CheckCircle2 size={15} className="text-emerald-200" />
+                    Continue with structured interviews and quick pricing validation.
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {report && (
+        <>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {report.dimensions.map((dimension) => (
+              <div key={dimension.name} className="rounded-xl border border-white/10 bg-black/30 p-3">
+                <p className="text-xs text-white/60">{dimension.name}</p>
+                <p
+                  className={clsx(
+                    "mt-1 text-sm font-semibold",
+                    dimension.rating === "Strong"
+                      ? "text-emerald-200"
+                      : dimension.rating === "Moderate"
+                        ? "text-amber-200"
+                        : "text-rose-200",
+                  )}
+                >
+                  {dimension.rating}
+                </p>
+                <p className="mt-2 text-xs text-white/70">{dimension.reason}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-3 font-semibold">Quick Competitive Scan</h3>
+            <div className="overflow-hidden rounded-xl border border-white/10">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-white/[0.05] text-white/80">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Competitor / Alternative</th>
+                    <th className="px-3 py-2 font-medium">Type</th>
+                    <th className="px-3 py-2 font-medium">Pricing</th>
+                    <th className="px-3 py-2 font-medium">Est. Size</th>
+                    <th className="px-3 py-2 font-medium">Key Weakness</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.competitors.map((row) => (
+                    <tr key={row.name} className="border-t border-white/10 bg-black/20">
+                      <td className="px-3 py-2">{row.name}</td>
+                      <td className="px-3 py-2 text-white/80">{row.type}</td>
+                      <td className="px-3 py-2 text-white/80">{row.pricing}</td>
+                      <td className="px-3 py-2 text-white/80">{row.size}</td>
+                      <td className="px-3 py-2 text-white/75">{row.weakness}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <h3 className="mb-2 font-semibold">Killer Questions</h3>
+              <div className="space-y-2 text-sm text-white/80">
+                {report.killerQuestions.map((question) => (
+                  <p key={question} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                    {question}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <h3 className="mb-2 font-semibold">Next Experiments</h3>
+              <div className="space-y-2 text-sm">
+                {report.experiments.map((exp) => (
+                  <div key={exp.title} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <p className="font-medium">{exp.title}</p>
+                    <p className="mt-1 text-white/75">Cost: {exp.cost}</p>
+                    <p className="mt-1 text-white/75">Signal: {exp.signal}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SkillPlaceholder({ title, summary }: { title: string; summary: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -320,6 +714,7 @@ export default function Home() {
     "[System] Knowledge Work Center booted.",
     "[Status] LinkedIn Post Writer: Online (/Users/joy/pm-claude-skills/skills/linkedin-post-writer/SKILL.md)",
     "[Status] Play Store Research Skill: Online (/Users/joy/Opportunity Research/skills/play-store-opportunity-research)",
+    "[Status] Idea Validator: Online (/Users/joy/pm-claude-skills/skills/idea-validator/SKILL.md)",
   ]);
 
   const pushLog = (line: string) => {
@@ -410,6 +805,9 @@ export default function Home() {
               <span className="inline-flex items-center gap-2 rounded-full border border-indigo-300/35 bg-indigo-500/15 px-3 py-1 text-xs text-indigo-200">
                 <Sparkles size={13} /> Play Store Market Engine: Online
               </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/35 bg-amber-500/15 px-3 py-1 text-xs text-amber-200">
+                <ShieldCheck size={13} /> Idea Validator: Online
+              </span>
               <button
                 onClick={() => setCommandOpen(true)}
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs"
@@ -430,6 +828,7 @@ export default function Home() {
               >
                 {activeSkill === "market" && <SkillMarketResearch onLog={pushLog} />}
                 {activeSkill === "content" && <SkillContentEngine onLog={pushLog} />}
+                {activeSkill === "validator" && <SkillIdeaValidator onLog={pushLog} />}
                 {activeSkill === "product" && (
                   <SkillPlaceholder
                     title="Product Intelligence"

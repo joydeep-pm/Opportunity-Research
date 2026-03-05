@@ -6,3 +6,9 @@
 - Preventive rule: Default to one canonical app at repository root for production deploys; keep experiments in clearly named legacy folders and document non-deploy status.
 - Preventive rule: Keep `vercel.json` minimal unless custom build routing is truly required.
 - Preventive rule: Validate with root `npm run build` before asking user to redeploy.
+
+## 2026-03-05 - Include all named skills in unified workspace
+- Trigger: User pointed out missing `Idea Validator` skill in Knowledge Work Center.
+- Mistake pattern: Shipping shell navigation without validating every named skill is represented as an actual module.
+- Preventive rule: Before finalizing multi-skill dashboards, cross-check user-requested skills against sidebar items and command palette entries.
+- Preventive rule: Add status chip + startup log entry for each active skill so omissions are visually obvious.
