@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
   "installCommand": "if [ -d knowledge-work-center ]; then cd knowledge-work-center; elif [ -d ../knowledge-work-center ]; then cd ../knowledge-work-center; fi; npm install",
   "buildCommand": "if [ -d knowledge-work-center ]; then cd knowledge-work-center; elif [ -d ../knowledge-work-center ]; then cd ../knowledge-work-center; fi; npm run build",
-  "devCommand": "if [ -d knowledge-work-center ]; then cd knowledge-work-center; elif [ -d ../knowledge-work-center ]; then cd ../knowledge-work-center; fi; npm run dev"
+  "devCommand": "if [ -d knowledge-work-center ]; then cd knowledge-work-center; elif [ -d ../knowledge-work-center ]; then cd ../knowledge-work-center; fi; npm run dev",
+  "outputDirectory": "knowledge-work-center/.next"
 }
