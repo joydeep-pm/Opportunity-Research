@@ -18,3 +18,9 @@
 - Mistake pattern: Leaving requested skills as external references instead of first-class UI modules.
 - Preventive rule: When user shares `.skill` files, inspect archive structure first (`SKILL.md` + references), then map concrete behaviors into dedicated panels.
 - Preventive rule: If user says "add into existing skill", upgrade the existing module rather than adding another placeholder.
+
+## 2026-03-06 - Respect exclusion constraints during bulk skill adds
+- Trigger: User clarified "excluding PRD writer, add the rest into Product Intelligence."
+- Mistake pattern: Risk of reworking already-added modules instead of extending only missing skill coverage.
+- Preventive rule: When user says "barring X", preserve X as-is and focus only on missing requested modules.
+- Preventive rule: Before edits, explicitly map requested skills into "already present" vs "to add" lists.

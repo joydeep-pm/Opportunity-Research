@@ -211,3 +211,33 @@
     - terminal startup logs for both skill sources.
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
+
+## Product Intelligence Expansion Plan
+- [x] Integrate remaining product skills into the existing Product Intelligence module: Competitive Analysis, Launch Checklist, Metrics Definer, Sprint Planner, User Research Synthesizer.
+- [x] Keep PRD Writer as-is inside Product Intelligence and add a sub-skill switcher UI for all six tools.
+- [x] Implement deterministic input/output workflows for each added skill panel.
+- [x] Add source references for the five new `SKILL*.md` files in the Product Intelligence UI.
+- [x] Verify root build and document completion evidence.
+
+## Product Intelligence Expansion Review
+- Parsed skill files:
+  - `/Users/joy/Downloads/SKILL.md` (User Research Synthesizer)
+  - `/Users/joy/Downloads/SKILL (1).md` (Sprint Planner)
+  - `/Users/joy/Downloads/SKILL (2).md` (Metrics Definer)
+  - `/Users/joy/Downloads/SKILL (3).md` (Launch Checklist)
+  - `/Users/joy/Downloads/SKILL (4).md` (Competitive Analysis)
+- Updated module:
+  - `src/app/page.tsx`
+- Product Intelligence now includes sub-skill switching for:
+  - PRD Writer (existing)
+  - Competitive Analysis
+  - Launch Checklist
+  - Metrics Definer
+  - Sprint Planner
+  - User Research Synthesizer
+- Each added skill has:
+  - dedicated inputs,
+  - deterministic generated outputs,
+  - run-status logging via terminal log feed.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).

@@ -81,6 +81,50 @@ type PromptAudit = {
   tokenEstimate: { before: number; after: number; reductionPct: number };
 };
 
+type ProductSubSkill = "prd" | "competitive" | "launch" | "metrics" | "sprint" | "research";
+
+type CompetitiveReport = {
+  whatTheyBuilt: { coreFunctionality: string; targetUser: string; keyDifferentiator: string };
+  whatsSmart: string[];
+  whatsWeak: string[];
+  implicationsForUs: string[];
+};
+
+type LaunchChecklist = {
+  preLaunch: string[];
+  launchDay: string[];
+  post48h: string[];
+  postWeek: string[];
+  riskAddons: string[];
+};
+
+type MetricsPlan = {
+  primary: { name: string; definition: string; measurement: string; target: string; timeframe: string };
+  secondary: string[];
+  guardrails: string[];
+  leading: string[];
+  antiMetrics: string[];
+};
+
+type SprintPlan = {
+  goal: string;
+  capacity: number;
+  planned: number;
+  buffer: number;
+  verdict: "Overloaded" | "Right-sized" | "Underloaded";
+  items: Array<{ item: string; estimate: number; priority: string; dependency: string; owner: string }>;
+  stretchGoals: string[];
+  risks: string[];
+};
+
+type ResearchSynthesis = {
+  findings: Array<{ finding: string; evidence: string; confidence: "High" | "Medium" | "Low"; implication: string }>;
+  themes: Array<{ theme: string; frequency: string; quote: string; implication: string }>;
+  surprises: string[];
+  gaps: string[];
+  actions: string[];
+};
+
 const sidebarItems = [
   { id: "market" as SkillId, label: "Market Research", icon: BarChart3 },
   { id: "content" as SkillId, label: "Content Engine", icon: FileText },
@@ -545,6 +589,232 @@ function buildPromptAudit({
       after,
       reductionPct,
     },
+  };
+}
+
+function buildCompetitiveReport({
+  competitor,
+  feature,
+  ourProduct,
+}: {
+  competitor: string;
+  feature: string;
+  ourProduct: string;
+}): CompetitiveReport {
+  return {
+    whatTheyBuilt: {
+      coreFunctionality: `${competitor} optimized ${feature} around a tightly scoped user journey.`,
+      targetUser: "High-frequency users with immediate workflow pain.",
+      keyDifferentiator: "Fast activation path with low setup friction and clear upgrade moments.",
+    },
+    whatsSmart: [
+      "Narrow initial scope that maximizes first-week retention.",
+      "Feature embedding inside daily workflow instead of optional sidebar utilities.",
+      "Monetization tied to usage thresholds, not arbitrary paywalls.",
+    ],
+    whatsWeak: [
+      "Limited transparency in advanced pricing tiers for growing teams.",
+      "Weak mobile parity for core flows, reducing cross-device engagement.",
+      "Guardrail and audit workflows underdeveloped for regulated customers.",
+    ],
+    implicationsForUs: [
+      `For ${ourProduct}, copy the low-friction onboarding pattern and avoid opaque packaging.`,
+      "Differentiate with explicit trust controls, audit traces, and visible quality scoring.",
+      "Prioritize mobile parity for the highest-frequency path before adding feature breadth.",
+    ],
+  };
+}
+
+function buildLaunchChecklist({
+  launchTarget,
+  riskLevel,
+}: {
+  launchTarget: string;
+  riskLevel: "low" | "medium" | "high";
+}): LaunchChecklist {
+  const base: LaunchChecklist = {
+    preLaunch: [
+      `Feature for "${launchTarget}" is QA signed-off end-to-end.`,
+      "Rollback plan documented and tested in staging.",
+      "Primary + guardrail metrics have baselines and alert thresholds.",
+      "Support brief with FAQ and escalation owner is published.",
+      "Feature flag and monitoring dashboard are configured.",
+    ],
+    launchDay: [
+      "Deploy in low-traffic window and verify telemetry ingestion.",
+      "Monitor errors, latency, and support channels for 2 hours.",
+      "Post internal launch communication with rollback command.",
+    ],
+    post48h: [
+      "Compare primary metric against baseline and expected MDE.",
+      "Review guardrails: performance, support volume, and failures.",
+      "Summarize issues and decision options to stakeholders.",
+    ],
+    postWeek: [
+      "Run full impact review and decide scale, iterate, or rollback.",
+      "Capture learnings and update launch runbook for next release.",
+    ],
+    riskAddons: [],
+  };
+
+  if (riskLevel === "medium") {
+    base.riskAddons = [
+      "Use staged rollout with manual gate checks at 10%, 25%, and 50%.",
+      "Assign explicit on-call owner for first 24 hours.",
+    ];
+  }
+
+  if (riskLevel === "high") {
+    base.riskAddons = [
+      "War-room channel active with engineering, product, and support.",
+      "Staged rollout required: 1% → 10% → 50% → 100%.",
+      "Executive notification and 24-hour monitoring coverage.",
+      "No Friday-afternoon deployment window allowed.",
+    ];
+  }
+
+  return base;
+}
+
+function buildMetricsPlan({
+  initiative,
+  goal,
+}: {
+  initiative: string;
+  goal: string;
+}): MetricsPlan {
+  return {
+    primary: {
+      name: `${initiative} activation rate`,
+      definition: `Percent of exposed users completing the key ${initiative} action within 7 days.`,
+      measurement: `Event tracking pipeline with event "initiative_action_completed" and exposure marker.`,
+      target: `>= +12% vs baseline aligned to goal: ${goal}`,
+      timeframe: "Weekly readout, formal evaluation at 30 and 90 days.",
+    },
+    secondary: [
+      "Completion-to-repeat ratio within first 14 days.",
+      "Median time-to-first-value from first exposure.",
+      "Retention delta for exposed vs control cohorts.",
+    ],
+    guardrails: [
+      "p95 latency does not regress more than 10% from baseline.",
+      "Support tickets in impacted workflow do not exceed +15% week-over-week.",
+      "Crash/error rate stays below pre-launch threshold.",
+    ],
+    leading: [
+      "Day-1 setup completion.",
+      "First-session drop-off at critical steps.",
+      "User-reported clarity score in first-week survey.",
+    ],
+    antiMetrics: [
+      "Higher session count with lower completion can indicate confusion loops.",
+      "Traffic spikes without qualified conversions can indicate mis-targeting.",
+    ],
+  };
+}
+
+function buildSprintPlan({
+  backlogInput,
+  teamSize,
+  sprintWeeks,
+}: {
+  backlogInput: string;
+  teamSize: number;
+  sprintWeeks: number;
+}): SprintPlan {
+  const parsed = backlogInput
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [item, estimate, priority, dependency, owner] = line.split("|").map((part) => part.trim());
+      return {
+        item: item || "Backlog item",
+        estimate: Number(estimate) || 2,
+        priority: priority || "P1",
+        dependency: dependency || "None",
+        owner: owner || "TBD",
+      };
+    });
+
+  const capacity = teamSize * sprintWeeks * 5;
+  const effectiveCapacity = Math.round(capacity * 0.8);
+  const planned = parsed.reduce((sum, item) => sum + item.estimate, 0);
+  const buffer = Math.max(0, effectiveCapacity - planned);
+  const verdict: SprintPlan["verdict"] =
+    planned > effectiveCapacity ? "Overloaded" : planned < effectiveCapacity * 0.65 ? "Underloaded" : "Right-sized";
+
+  return {
+    goal: "Deliver highest-risk items first while preserving 20% contingency capacity.",
+    capacity: effectiveCapacity,
+    planned,
+    buffer,
+    verdict,
+    items: parsed,
+    stretchGoals: [
+      "Add one P2 task only if all P0/P1 items are complete by mid-sprint.",
+      "Reserve final day for hardening, instrumentation checks, and release prep.",
+    ],
+    risks: [
+      "Items with unresolved dependencies may cause schedule compression.",
+      "Low-confidence estimates should be re-sized by day 2 checkpoint.",
+    ],
+  };
+}
+
+function buildResearchSynthesis({
+  question,
+  participants,
+}: {
+  question: string;
+  participants: number;
+}): ResearchSynthesis {
+  const sample = Math.max(1, participants);
+  const highCount = Math.max(2, Math.round(sample * 0.6));
+  const medCount = Math.max(1, Math.round(sample * 0.3));
+
+  return {
+    findings: [
+      {
+        finding: "Users hesitate at trust-heavy setup steps before experiencing value.",
+        evidence: `${highCount} of ${sample} participants delayed or skipped setup until value was clearer.`,
+        confidence: "High",
+        implication: "Move trust asks after first value milestone.",
+      },
+      {
+        finding: "Frequent users create manual workarounds for repetitive tasks.",
+        evidence: `${medCount} of ${sample} participants showed ad-hoc shortcuts or external tools.`,
+        confidence: "Medium",
+        implication: "Prioritize batch or automation workflows for retention.",
+      },
+    ],
+    themes: [
+      {
+        theme: "Onboarding trust friction",
+        frequency: `${highCount}/${sample}`,
+        quote: "\"I need to see value before granting deeper access.\"",
+        implication: "Re-sequence onboarding to show value first.",
+      },
+      {
+        theme: "Workflow fragmentation",
+        frequency: `${medCount}/${sample}`,
+        quote: "\"I keep switching between tools to complete one task.\"",
+        implication: "Consolidate key workflow in a single surface.",
+      },
+    ],
+    surprises: [
+      "Search/discovery features are less visible than expected during live usage.",
+      `Some users answered differently from observed behavior in ${question}.`,
+    ],
+    gaps: [
+      "Limited coverage from enterprise and low-activity cohorts.",
+      "Pricing sensitivity not deeply tested in current sessions.",
+    ],
+    actions: [
+      "Run follow-up interviews focused on enterprise decision-makers.",
+      "Prototype value-first onboarding and test against current baseline.",
+      "Instrument discovery and repeated-task behaviors before next sprint.",
+    ],
   };
 }
 
@@ -1179,6 +1449,16 @@ function SkillProductIntelligence({
 }: {
   onLog: (line: string) => void;
 }) {
+  const modules: Array<{ id: ProductSubSkill; label: string; source: string }> = [
+    { id: "prd", label: "PRD Writer", source: "/Users/joy/Downloads/prd-writer.skill" },
+    { id: "competitive", label: "Competitive Analysis", source: "/Users/joy/Downloads/SKILL (4).md" },
+    { id: "launch", label: "Launch Checklist", source: "/Users/joy/Downloads/SKILL (3).md" },
+    { id: "metrics", label: "Metrics Definer", source: "/Users/joy/Downloads/SKILL (2).md" },
+    { id: "sprint", label: "Sprint Planner", source: "/Users/joy/Downloads/SKILL (1).md" },
+    { id: "research", label: "User Research Synthesizer", source: "/Users/joy/Downloads/SKILL.md" },
+  ];
+  const [activeModule, setActiveModule] = useState<ProductSubSkill>("prd");
+
   const [productName, setProductName] = useState("PlayIntel Copilot");
   const [problem, setProblem] = useState("Founders lack decision-grade Play Store opportunity specs before building.");
   const [hypothesis, setHypothesis] = useState("A gated research-to-PRD workflow will reduce false-start builds and improve launch quality.");
@@ -1196,6 +1476,37 @@ function SkillProductIntelligence({
   );
   const [isDrafting, setIsDrafting] = useState(false);
   const [draft, setDraft] = useState<PrdDraft | null>(null);
+  const [competitorName, setCompetitorName] = useState("HabitNow");
+  const [competitorFeature, setCompetitorFeature] = useState("AI habit coaching loop");
+  const [ourProductName, setOurProductName] = useState("PlayIntel Copilot");
+  const [isAnalyzingCompetitive, setIsAnalyzingCompetitive] = useState(false);
+  const [competitiveReport, setCompetitiveReport] = useState<CompetitiveReport | null>(null);
+  const [launchTarget, setLaunchTarget] = useState("India-first AI Habit Tracker release");
+  const [launchDate, setLaunchDate] = useState("2026-04-01");
+  const [usersAffected, setUsersAffected] = useState("~10,000 beta users");
+  const [launchRisk, setLaunchRisk] = useState<"low" | "medium" | "high">("medium");
+  const [isBuildingChecklist, setIsBuildingChecklist] = useState(false);
+  const [launchChecklist, setLaunchChecklist] = useState<LaunchChecklist | null>(null);
+  const [metricInitiative, setMetricInitiative] = useState("Opportunity-to-PRD conversion");
+  const [metricGoal, setMetricGoal] = useState("Increase quality handoffs from research to execution.");
+  const [currentSignals, setCurrentSignals] = useState("Research run count, PRD generation completion, session errors");
+  const [isDefiningMetrics, setIsDefiningMetrics] = useState(false);
+  const [metricsPlan, setMetricsPlan] = useState<MetricsPlan | null>(null);
+  const [backlogInput, setBacklogInput] = useState(
+    "Finalize India filter enforcement | 3 | P0 | None | Joy\nBuild competitor table export | 2 | P1 | API schema lock | Arjun\nLaunch-readiness dashboard | 4 | P1 | Metrics events | Priya",
+  );
+  const [teamSize, setTeamSize] = useState(3);
+  const [sprintWeeks, setSprintWeeks] = useState(2);
+  const [sprintConstraints, setSprintConstraints] = useState("One engineer part-time on support during week 1");
+  const [isPlanningSprint, setIsPlanningSprint] = useState(false);
+  const [sprintPlan, setSprintPlan] = useState<SprintPlan | null>(null);
+  const [researchNotes, setResearchNotes] = useState(
+    "Participant 1: hesitant to connect data before seeing value.\nParticipant 2: uses spreadsheet workaround for repetitive flows.\nParticipant 3: says onboarding asks too much too early.",
+  );
+  const [researchQuestion, setResearchQuestion] = useState("Why do users drop during onboarding for AI habit products?");
+  const [participantCount, setParticipantCount] = useState(10);
+  const [isSynthesizingResearch, setIsSynthesizingResearch] = useState(false);
+  const [researchSynthesis, setResearchSynthesis] = useState<ResearchSynthesis | null>(null);
 
   const generatePrd = () => {
     setIsDrafting(true);
@@ -1216,155 +1527,687 @@ function SkillProductIntelligence({
       onLog("[Product Intelligence] PRD draft generated with rollout + risk controls.");
     }, 1500);
   };
+  const runCompetitiveAnalysis = () => {
+    setIsAnalyzingCompetitive(true);
+    onLog("[Product Intelligence] Running competitive analysis module...");
+    window.setTimeout(() => {
+      setCompetitiveReport(
+        buildCompetitiveReport({
+          competitor: competitorName,
+          feature: competitorFeature,
+          ourProduct: ourProductName,
+        }),
+      );
+      setIsAnalyzingCompetitive(false);
+      onLog("[Product Intelligence] Competitive analysis completed.");
+    }, 1000);
+  };
+  const generateLaunchChecklist = () => {
+    setIsBuildingChecklist(true);
+    onLog("[Product Intelligence] Building risk-scaled launch checklist...");
+    window.setTimeout(() => {
+      setLaunchChecklist(
+        buildLaunchChecklist({
+          launchTarget: `${launchTarget} (${launchDate}, ${usersAffected})`,
+          riskLevel: launchRisk,
+        }),
+      );
+      setIsBuildingChecklist(false);
+      onLog("[Product Intelligence] Launch checklist ready.");
+    }, 900);
+  };
+  const defineMetrics = () => {
+    setIsDefiningMetrics(true);
+    onLog("[Product Intelligence] Defining primary, guardrail, and anti-metrics...");
+    window.setTimeout(() => {
+      setMetricsPlan(
+        buildMetricsPlan({
+          initiative: metricInitiative,
+          goal: `${metricGoal} Current measurable signals: ${currentSignals}.`,
+        }),
+      );
+      setIsDefiningMetrics(false);
+      onLog("[Product Intelligence] Metrics contract generated.");
+    }, 900);
+  };
+  const planSprint = () => {
+    setIsPlanningSprint(true);
+    onLog("[Product Intelligence] Creating sprint plan with capacity check...");
+    window.setTimeout(() => {
+      setSprintPlan(
+        buildSprintPlan({
+          backlogInput,
+          teamSize,
+          sprintWeeks,
+        }),
+      );
+      setIsPlanningSprint(false);
+      onLog("[Product Intelligence] Sprint plan ready.");
+    }, 900);
+  };
+  const synthesizeResearch = () => {
+    setIsSynthesizingResearch(true);
+    onLog("[Product Intelligence] Synthesizing interview evidence...");
+    window.setTimeout(() => {
+      setResearchSynthesis(
+        buildResearchSynthesis({
+          question: `${researchQuestion} Notes: ${researchNotes}`,
+          participants: participantCount,
+        }),
+      );
+      setIsSynthesizingResearch(false);
+      onLog("[Product Intelligence] Research synthesis complete.");
+    }, 900);
+  };
 
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p className="mb-2 text-xs uppercase tracking-[0.2em] text-violet-200">Product Intelligence · PRD Writer</p>
-        <h2 className="text-xl font-semibold">Decision-First PRD Studio</h2>
-        <p className="mt-1 text-sm text-white/70">
-          Source: <code>/Users/joy/Downloads/prd-writer.skill</code>
-        </p>
+        <p className="mb-2 text-xs uppercase tracking-[0.2em] text-violet-200">Product Intelligence</p>
+        <h2 className="text-xl font-semibold">Multi-Skill Product Ops Console</h2>
+        <p className="mt-1 text-sm text-white/70">PRD Writer is retained, with five additional product skills added as requested.</p>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          {modules.map((module) => (
+            <button
+              key={module.id}
+              onClick={() => {
+                setActiveModule(module.id);
+                onLog(`[Product Intelligence] Switched to ${module.label}.`);
+              }}
+              className={clsx(
+                "rounded-xl border px-3 py-2 text-left text-sm transition",
+                activeModule === module.id
+                  ? "border-violet-300/60 bg-violet-500/20"
+                  : "border-white/10 bg-black/25 hover:border-white/25",
+              )}
+            >
+              <p className="font-medium">{module.label}</p>
+              <p className="text-xs text-white/65">{module.source}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
-          <h3 className="mb-2 font-semibold">PRD Inputs</h3>
-          <div className="space-y-3">
-            <input
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
-              placeholder="Product name"
-            />
-            <textarea
-              value={problem}
-              onChange={(e) => setProblem(e.target.value)}
-              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
-              placeholder="Core problem"
-            />
-            <textarea
-              value={hypothesis}
-              onChange={(e) => setHypothesis(e.target.value)}
-              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
-              placeholder="Working hypothesis"
-            />
-            <textarea
-              value={scopeInput}
-              onChange={(e) => setScopeInput(e.target.value)}
-              className="h-24 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
-              placeholder="In-scope items (one per line)"
-            />
-            <textarea
-              value={nonGoalsInput}
-              onChange={(e) => setNonGoalsInput(e.target.value)}
-              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
-              placeholder="Non-goals (one per line)"
-            />
-            <textarea
-              value={metricInput}
-              onChange={(e) => setMetricInput(e.target.value)}
-              className="h-24 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
-              placeholder="Metrics as: metric | target | guardrail"
-            />
-            <textarea
-              value={rolloutInput}
-              onChange={(e) => setRolloutInput(e.target.value)}
-              className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
-              placeholder="Rollout steps (one per line)"
-            />
+      {activeModule === "prd" && (
+        <>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+              <h3 className="mb-2 font-semibold">PRD Inputs</h3>
+              <div className="space-y-3">
+                <input
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                  placeholder="Product name"
+                />
+                <textarea
+                  value={problem}
+                  onChange={(e) => setProblem(e.target.value)}
+                  className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                  placeholder="Core problem"
+                />
+                <textarea
+                  value={hypothesis}
+                  onChange={(e) => setHypothesis(e.target.value)}
+                  className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                  placeholder="Working hypothesis"
+                />
+                <textarea
+                  value={scopeInput}
+                  onChange={(e) => setScopeInput(e.target.value)}
+                  className="h-24 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                  placeholder="In-scope items (one per line)"
+                />
+                <textarea
+                  value={nonGoalsInput}
+                  onChange={(e) => setNonGoalsInput(e.target.value)}
+                  className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                  placeholder="Non-goals (one per line)"
+                />
+                <textarea
+                  value={metricInput}
+                  onChange={(e) => setMetricInput(e.target.value)}
+                  className="h-24 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                  placeholder="Metrics as: metric | target | guardrail"
+                />
+                <textarea
+                  value={rolloutInput}
+                  onChange={(e) => setRolloutInput(e.target.value)}
+                  className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                  placeholder="Rollout steps (one per line)"
+                />
+              </div>
+              <button
+                onClick={generatePrd}
+                disabled={isDrafting}
+                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+              >
+                {isDrafting ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+                Generate PRD
+              </button>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <h3 className="mb-2 font-semibold">Execution Snapshot</h3>
+              {!draft && (
+                <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+                  Generate a PRD to view structured decisions, metrics, rollout gates, and risk controls.
+                </div>
+              )}
+              {draft && (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-indigo-300/35 bg-indigo-500/10 p-3 text-sm text-indigo-100">
+                    {draft.executiveSummary}
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-white/60">Scope Items</p>
+                      <p className="mt-1 text-lg font-semibold">{draft.scope.length}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-white/60">Success Metrics</p>
+                      <p className="mt-1 text-lg font-semibold">{draft.metrics.length}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-white/60">Rollout Gates</p>
+                      <p className="mt-1 text-lg font-semibold">{draft.rollout.length}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <button
-            onClick={generatePrd}
-            disabled={isDrafting}
-            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
-          >
-            {isDrafting ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
-            Generate PRD
-          </button>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-          <h3 className="mb-2 font-semibold">Execution Snapshot</h3>
-          {!draft && (
-            <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
-              Generate a PRD to view structured decisions, metrics, rollout gates, and risk controls.
+          {draft && (
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                  <Gauge size={16} /> Metric Contract
+                </h3>
+                <div className="space-y-2 text-sm">
+                  {draft.metrics.map((m) => (
+                    <div key={`${m.metric}-${m.target}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="font-medium">{m.metric}</p>
+                      <p className="mt-1 text-white/75">Target: {m.target}</p>
+                      <p className="mt-1 text-white/75">Guardrail: {m.guardrail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                  <Rocket size={16} /> Rollout + Risks
+                </h3>
+                <div className="space-y-2 text-sm">
+                  {draft.rollout.map((step) => (
+                    <p key={step} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-white/80">
+                      {step}
+                    </p>
+                  ))}
+                  <div className="rounded-xl border border-rose-300/30 bg-rose-500/10 p-3">
+                    <p className="font-medium text-rose-100">Primary Risk Cluster</p>
+                    <ul className="mt-1 list-disc pl-5 text-xs text-rose-100/90">
+                      {draft.risks.map((risk) => (
+                        <li key={risk}>{risk}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {draft && (
-            <div className="space-y-3">
-              <div className="rounded-xl border border-indigo-300/35 bg-indigo-500/10 p-3 text-sm text-indigo-100">
-                {draft.executiveSummary}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                  <p className="text-xs text-white/60">Scope Items</p>
-                  <p className="mt-1 text-lg font-semibold">{draft.scope.length}</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                  <p className="text-xs text-white/60">Success Metrics</p>
-                  <p className="mt-1 text-lg font-semibold">{draft.metrics.length}</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                  <p className="text-xs text-white/60">Rollout Gates</p>
-                  <p className="mt-1 text-lg font-semibold">{draft.rollout.length}</p>
-                </div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/75">
-                PRD quality reminders: concrete thresholds, explicit non-goals, kill-switch owner, and review cadence.
-              </div>
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                <ListChecks size={16} /> PRD Markdown Draft
+              </h3>
+              <pre className="max-h-[360px] overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs leading-6 text-white/90">
+                {draft.markdown}
+              </pre>
             </div>
           )}
-        </div>
-      </div>
+        </>
+      )}
 
-      {draft && (
+      {activeModule === "competitive" && (
         <div className="grid gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-            <h3 className="mb-2 flex items-center gap-2 font-semibold">
-              <Gauge size={16} /> Metric Contract
-            </h3>
-            <div className="space-y-2 text-sm">
-              {draft.metrics.map((m) => (
-                <div key={`${m.metric}-${m.target}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                  <p className="font-medium">{m.metric}</p>
-                  <p className="mt-1 text-white/75">Target: {m.target}</p>
-                  <p className="mt-1 text-white/75">Guardrail: {m.guardrail}</p>
-                </div>
-              ))}
+          <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+            <h3 className="mb-2 font-semibold">Competitive Inputs</h3>
+            <div className="space-y-3">
+              <input
+                value={competitorName}
+                onChange={(e) => setCompetitorName(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Competitor name"
+              />
+              <input
+                value={competitorFeature}
+                onChange={(e) => setCompetitorFeature(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Feature/product area"
+              />
+              <input
+                value={ourProductName}
+                onChange={(e) => setOurProductName(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Our product for comparison"
+              />
             </div>
+            <button
+              onClick={runCompetitiveAnalysis}
+              disabled={isAnalyzingCompetitive}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+            >
+              {isAnalyzingCompetitive ? <Loader2 size={16} className="animate-spin" /> : <BrainCircuit size={16} />}
+              Analyze Competitor
+            </button>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-            <h3 className="mb-2 flex items-center gap-2 font-semibold">
-              <Rocket size={16} /> Rollout + Risks
-            </h3>
-            <div className="space-y-2 text-sm">
-              {draft.rollout.map((step) => (
-                <p key={step} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-white/80">
-                  {step}
-                </p>
-              ))}
-              <div className="rounded-xl border border-rose-300/30 bg-rose-500/10 p-3">
-                <p className="font-medium text-rose-100">Primary Risk Cluster</p>
-                <ul className="mt-1 list-disc pl-5 text-xs text-rose-100/90">
-                  {draft.risks.map((risk) => (
-                    <li key={risk}>{risk}</li>
-                  ))}
-                </ul>
+            <h3 className="mb-2 font-semibold">Analysis Output</h3>
+            {!competitiveReport && (
+              <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+                Run analysis to get what to copy, avoid, and differentiate.
               </div>
-            </div>
+            )}
+            {competitiveReport && (
+              <div className="space-y-3 text-sm">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="font-medium">What They Built</p>
+                  <p className="mt-1 text-white/75">Core: {competitiveReport.whatTheyBuilt.coreFunctionality}</p>
+                  <p className="mt-1 text-white/75">User: {competitiveReport.whatTheyBuilt.targetUser}</p>
+                  <p className="mt-1 text-white/75">Differentiator: {competitiveReport.whatTheyBuilt.keyDifferentiator}</p>
+                </div>
+                <div className="rounded-xl border border-emerald-300/30 bg-emerald-500/10 p-3">
+                  <p className="font-medium text-emerald-100">What&apos;s Smart</p>
+                  <ul className="mt-1 list-disc pl-5 text-emerald-100/90">
+                    {competitiveReport.whatsSmart.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-3">
+                  <p className="font-medium text-amber-100">What&apos;s Weak</p>
+                  <ul className="mt-1 list-disc pl-5 text-amber-100/90">
+                    {competitiveReport.whatsWeak.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-indigo-300/30 bg-indigo-500/10 p-3">
+                  <p className="font-medium text-indigo-100">Implications For Us</p>
+                  <ul className="mt-1 list-disc pl-5 text-indigo-100/90">
+                    {competitiveReport.implicationsForUs.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {draft && (
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-          <h3 className="mb-2 flex items-center gap-2 font-semibold">
-            <ListChecks size={16} /> PRD Markdown Draft
-          </h3>
-          <pre className="max-h-[360px] overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs leading-6 text-white/90">
-            {draft.markdown}
-          </pre>
+      {activeModule === "launch" && (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+            <h3 className="mb-2 font-semibold">Launch Inputs</h3>
+            <div className="space-y-3">
+              <input
+                value={launchTarget}
+                onChange={(e) => setLaunchTarget(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="What are you launching?"
+              />
+              <input
+                value={launchDate}
+                onChange={(e) => setLaunchDate(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Launch date"
+              />
+              <input
+                value={usersAffected}
+                onChange={(e) => setUsersAffected(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Users affected"
+              />
+              <select
+                value={launchRisk}
+                onChange={(e) => setLaunchRisk(e.target.value as "low" | "medium" | "high")}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+              >
+                <option value="low">Low Risk</option>
+                <option value="medium">Medium Risk</option>
+                <option value="high">High Risk</option>
+              </select>
+            </div>
+            <button
+              onClick={generateLaunchChecklist}
+              disabled={isBuildingChecklist}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+            >
+              {isBuildingChecklist ? <Loader2 size={16} className="animate-spin" /> : <ListChecks size={16} />}
+              Generate Checklist
+            </button>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-2 font-semibold">Checklist</h3>
+            {!launchChecklist && (
+              <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+                Generate a risk-scaled launch checklist with pre, launch day, and post-launch controls.
+              </div>
+            )}
+            {launchChecklist && (
+              <div className="space-y-3 text-sm">
+                {[
+                  { title: "Pre-Launch", items: launchChecklist.preLaunch },
+                  { title: "Launch Day", items: launchChecklist.launchDay },
+                  { title: "Post-Launch (48h)", items: launchChecklist.post48h },
+                  { title: "Post-Launch (1 week)", items: launchChecklist.postWeek },
+                ].map((section) => (
+                  <div key={section.title} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <p className="font-medium">{section.title}</p>
+                    <ul className="mt-1 list-disc pl-5 text-white/80">
+                      {section.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+                {!!launchChecklist.riskAddons.length && (
+                  <div className="rounded-xl border border-rose-300/30 bg-rose-500/10 p-3">
+                    <p className="font-medium text-rose-100">Risk-Level Additions</p>
+                    <ul className="mt-1 list-disc pl-5 text-rose-100/90">
+                      {launchChecklist.riskAddons.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeModule === "metrics" && (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+            <h3 className="mb-2 font-semibold">Metric Inputs</h3>
+            <div className="space-y-3">
+              <input
+                value={metricInitiative}
+                onChange={(e) => setMetricInitiative(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Feature or initiative"
+              />
+              <textarea
+                value={metricGoal}
+                onChange={(e) => setMetricGoal(e.target.value)}
+                className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Goal"
+              />
+              <textarea
+                value={currentSignals}
+                onChange={(e) => setCurrentSignals(e.target.value)}
+                className="h-20 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="What can you currently measure?"
+              />
+            </div>
+            <button
+              onClick={defineMetrics}
+              disabled={isDefiningMetrics}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+            >
+              {isDefiningMetrics ? <Loader2 size={16} className="animate-spin" /> : <Gauge size={16} />}
+              Define Metrics
+            </button>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-2 font-semibold">Metric Contract</h3>
+            {!metricsPlan && (
+              <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+                Generate primary, secondary, guardrail, leading, and anti-metrics.
+              </div>
+            )}
+            {metricsPlan && (
+              <div className="space-y-3 text-sm">
+                <div className="rounded-xl border border-indigo-300/30 bg-indigo-500/10 p-3">
+                  <p className="font-medium text-indigo-100">{metricsPlan.primary.name}</p>
+                  <p className="mt-1 text-indigo-100/90">Definition: {metricsPlan.primary.definition}</p>
+                  <p className="mt-1 text-indigo-100/90">Measurement: {metricsPlan.primary.measurement}</p>
+                  <p className="mt-1 text-indigo-100/90">Target: {metricsPlan.primary.target}</p>
+                  <p className="mt-1 text-indigo-100/90">Timeframe: {metricsPlan.primary.timeframe}</p>
+                </div>
+                {[
+                  { title: "Secondary Metrics", items: metricsPlan.secondary },
+                  { title: "Guardrail Metrics", items: metricsPlan.guardrails },
+                  { title: "Leading Indicators", items: metricsPlan.leading },
+                  { title: "Anti-Metrics", items: metricsPlan.antiMetrics },
+                ].map((section) => (
+                  <div key={section.title} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <p className="font-medium">{section.title}</p>
+                    <ul className="mt-1 list-disc pl-5 text-white/80">
+                      {section.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeModule === "sprint" && (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+            <h3 className="mb-2 font-semibold">Sprint Inputs</h3>
+            <div className="space-y-3">
+              <textarea
+                value={backlogInput}
+                onChange={(e) => setBacklogInput(e.target.value)}
+                className="h-28 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Item | Estimate(days) | Priority | Dependencies | Owner"
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  type="number"
+                  min={1}
+                  value={teamSize}
+                  onChange={(e) => setTeamSize(Number(e.target.value) || 1)}
+                  className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                  placeholder="Team size"
+                />
+                <select
+                  value={sprintWeeks}
+                  onChange={(e) => setSprintWeeks(Number(e.target.value))}
+                  className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                >
+                  <option value={1}>1 week sprint</option>
+                  <option value={2}>2 week sprint</option>
+                </select>
+              </div>
+              <textarea
+                value={sprintConstraints}
+                onChange={(e) => setSprintConstraints(e.target.value)}
+                className="h-16 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Constraints or deadlines"
+              />
+            </div>
+            <button
+              onClick={planSprint}
+              disabled={isPlanningSprint}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+            >
+              {isPlanningSprint ? <Loader2 size={16} className="animate-spin" /> : <Target size={16} />}
+              Plan Sprint
+            </button>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-2 font-semibold">Sprint Plan</h3>
+            {!sprintPlan && (
+              <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+                Generate a plan with capacity math, backlog fit, stretch goals, and risks.
+              </div>
+            )}
+            {sprintPlan && (
+              <div className="space-y-3 text-sm">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="font-medium">Sprint Goal</p>
+                  <p className="mt-1 text-white/80">{sprintPlan.goal}</p>
+                  <p className="mt-2 text-xs text-white/70">Constraints: {sprintConstraints}</p>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-center">
+                    <p className="text-xs text-white/60">Capacity</p>
+                    <p className="font-semibold">{sprintPlan.capacity}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-center">
+                    <p className="text-xs text-white/60">Planned</p>
+                    <p className="font-semibold">{sprintPlan.planned}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-center">
+                    <p className="text-xs text-white/60">Buffer</p>
+                    <p className="font-semibold">{sprintPlan.buffer}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-center">
+                    <p className="text-xs text-white/60">Verdict</p>
+                    <p className="font-semibold">{sprintPlan.verdict}</p>
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-white/10">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-white/[0.05]">
+                      <tr>
+                        <th className="px-2 py-2">Item</th>
+                        <th className="px-2 py-2">Est</th>
+                        <th className="px-2 py-2">Pri</th>
+                        <th className="px-2 py-2">Dep</th>
+                        <th className="px-2 py-2">Owner</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sprintPlan.items.map((item) => (
+                        <tr key={`${item.item}-${item.owner}`} className="border-t border-white/10">
+                          <td className="px-2 py-2">{item.item}</td>
+                          <td className="px-2 py-2">{item.estimate}</td>
+                          <td className="px-2 py-2">{item.priority}</td>
+                          <td className="px-2 py-2">{item.dependency}</td>
+                          <td className="px-2 py-2">{item.owner}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="font-medium">Risks</p>
+                  <ul className="mt-1 list-disc pl-5 text-white/80">
+                    {sprintPlan.risks.map((risk) => (
+                      <li key={risk}>{risk}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeModule === "research" && (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+            <h3 className="mb-2 font-semibold">Research Inputs</h3>
+            <div className="space-y-3">
+              <textarea
+                value={researchNotes}
+                onChange={(e) => setResearchNotes(e.target.value)}
+                className="h-28 w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Paste interview notes or transcripts"
+              />
+              <input
+                value={researchQuestion}
+                onChange={(e) => setResearchQuestion(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Research question"
+              />
+              <input
+                type="number"
+                min={1}
+                value={participantCount}
+                onChange={(e) => setParticipantCount(Number(e.target.value) || 1)}
+                className="w-full rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-300/60"
+                placeholder="Participants"
+              />
+            </div>
+            <button
+              onClick={synthesizeResearch}
+              disabled={isSynthesizingResearch}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-violet-300/40 bg-violet-500/20 px-4 py-2 text-sm font-medium transition hover:bg-violet-500/30 disabled:opacity-50"
+            >
+              {isSynthesizingResearch ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              Synthesize Research
+            </button>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <h3 className="mb-2 font-semibold">Synthesis Output</h3>
+            {!researchSynthesis && (
+              <div className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] p-5 text-sm text-white/65">
+                Generate evidence-ranked findings with themes, surprises, gaps, and actions.
+              </div>
+            )}
+            {researchSynthesis && (
+              <div className="space-y-3 text-sm">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="font-medium">Key Findings</p>
+                  {researchSynthesis.findings.map((finding) => (
+                    <div key={finding.finding} className="mt-2 rounded-lg border border-white/10 bg-black/20 p-2">
+                      <p className="font-medium">{finding.finding}</p>
+                      <p className="text-white/75">Evidence: {finding.evidence}</p>
+                      <p className="text-white/75">Confidence: {finding.confidence}</p>
+                      <p className="text-white/75">Implication: {finding.implication}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="font-medium">Themes</p>
+                  <div className="mt-2 space-y-2">
+                    {researchSynthesis.themes.map((theme) => (
+                      <div key={theme.theme} className="rounded-lg border border-white/10 bg-black/20 p-2">
+                        <p className="font-medium">{theme.theme} ({theme.frequency})</p>
+                        <p className="text-white/75">Quote: {theme.quote}</p>
+                        <p className="text-white/75">Implication: {theme.implication}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid gap-2 md:grid-cols-3">
+                  <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-3">
+                    <p className="font-medium text-amber-100">Surprises</p>
+                    <ul className="mt-1 list-disc pl-5 text-amber-100/90">
+                      {researchSynthesis.surprises.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-xl border border-rose-300/30 bg-rose-500/10 p-3">
+                    <p className="font-medium text-rose-100">Gaps</p>
+                    <ul className="mt-1 list-disc pl-5 text-rose-100/90">
+                      {researchSynthesis.gaps.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-xl border border-emerald-300/30 bg-emerald-500/10 p-3">
+                    <p className="font-medium text-emerald-100">Actions</p>
+                    <ul className="mt-1 list-disc pl-5 text-emerald-100/90">
+                      {researchSynthesis.actions.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
