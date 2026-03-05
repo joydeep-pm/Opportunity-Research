@@ -5,6 +5,8 @@ import {
   Activity,
   Banknote,
   BrainCircuit,
+  CheckCircle2,
+  Circle,
   Download,
   HeartPulse,
   LoaderCircle,
@@ -155,7 +157,7 @@ function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [progressStep, setProgressStep] = useState(0)
   const [analysisReady, setAnalysisReady] = useState(false)
-  const [selectedOpportunity, setSelectedOpportunity] = useState(opportunities[0])
+  const [selectedOpportunity, setSelectedOpportunity] = useState(null)
   const [openPrd, setOpenPrd] = useState(false)
   const [downloadLabel, setDownloadLabel] = useState('Download Research Pack')
 
@@ -186,6 +188,8 @@ function App() {
   const triggerAnalyze = () => {
     setAnalysisReady(false)
     setProgressStep(0)
+    setOpenPrd(false)
+    setSelectedOpportunity(null)
     setIsAnalyzing(true)
   }
 
@@ -195,6 +199,7 @@ function App() {
   }
 
   const triggerDownload = () => {
+    if (!analysisReady) return
     const payload = {
       generatedAt: new Date().toISOString(),
       marketScope,
@@ -215,6 +220,21 @@ function App() {
     setDownloadLabel('Research Pack Downloaded')
     setTimeout(() => setDownloadLabel('Download Research Pack'), 1800)
   }
+
+  const flowState = [
+    { id: 1, label: 'Pick category + problem', done: query.trim().length > 0 },
+    { id: 2, label: 'Analyze Market (3s)', done: analysisReady },
+    { id: 3, label: 'Select opportunity', done: Boolean(selectedOpportunity) },
+    { id: 4, label: 'Open PRD panel', done: openPrd },
+  ]
+
+  const nextAction = isAnalyzing
+    ? 'Analyzing in progress...'
+    : !analysisReady
+      ? 'Click Analyze Market to unlock Research Workbench results.'
+      : !selectedOpportunity
+        ? 'Select one opportunity card in Step 3.'
+        : 'Click Expand for PRD on your selected opportunity.'
 
   return (
     <div className="min-h-screen bg-[#0B0B0C] text-white">
@@ -243,6 +263,35 @@ function App() {
       </header>
 
       <main className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 xl:px-8">
+        <motion.section
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 110, damping: 17 }}
+          className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur"
+        >
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">How It Works</h2>
+            <p className="rounded-full border border-indigo-300/30 bg-indigo-500/15 px-3 py-1 text-xs text-indigo-100">
+              Next action: {nextAction}
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {flowState.map((step) => (
+              <div key={step.id} className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <p className="mb-2 text-xs uppercase tracking-[0.14em] text-white/50">Step {step.id}</p>
+                <div className="flex items-center gap-2 text-sm">
+                  {step.done ? (
+                    <CheckCircle2 size={16} className="text-emerald-300" />
+                  ) : (
+                    <Circle size={16} className="text-white/35" />
+                  )}
+                  <span className={step.done ? 'text-white' : 'text-white/65'}>{step.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
         <motion.section
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -310,6 +359,11 @@ function App() {
         >
           <p className="mb-3 text-xs uppercase tracking-[0.18em] text-white/60">Step 2</p>
           <h2 className="mb-4 text-2xl font-semibold">Research Workbench</h2>
+          {!analysisReady && !isAnalyzing && (
+            <div className="mb-4 rounded-2xl border border-amber-300/30 bg-amber-400/10 p-3 text-sm text-amber-100">
+              This section unlocks after you click <strong>Analyze Market</strong> in Step 1.
+            </div>
+          )}
 
           <div className="mb-5 flex flex-wrap items-center gap-3">
             {timelineSteps.map((step, idx) => (
@@ -365,7 +419,7 @@ function App() {
             </button>
           </div>
 
-          {activeTab === 'market' && (
+          {activeTab === 'market' && analysisReady && (
             <div className="overflow-hidden rounded-2xl border border-white/10">
               <table className="w-full text-left text-sm">
                 <thead className="bg-white/[0.06] text-white/80">
@@ -395,7 +449,7 @@ function App() {
             </div>
           )}
 
-          {activeTab === 'gap' && (
+          {activeTab === 'gap' && analysisReady && (
             <div className="grid gap-3 md:grid-cols-2">
               {gapClusters.map((cluster) => (
                 <div key={cluster.title} className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -404,6 +458,12 @@ function App() {
                   <p className="mt-2 text-sm text-white/70">{cluster.details}</p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {!analysisReady && !isAnalyzing && (
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-5 text-sm text-white/65">
+              Run analysis to render <strong>Market Map</strong> and <strong>Gap Radar</strong>.
             </div>
           )}
         </motion.section>
@@ -419,11 +479,20 @@ function App() {
               <p className="text-xs uppercase tracking-[0.18em] text-white/60">Step 3</p>
               <h2 className="text-2xl font-semibold">Opportunity Hub</h2>
             </div>
-            <Button onClick={triggerDownload} className="rounded-xl border-emerald-300/25 bg-emerald-500/15">
+            <Button
+              onClick={triggerDownload}
+              disabled={!analysisReady}
+              className="rounded-xl border-emerald-300/25 bg-emerald-500/15"
+            >
               <Download size={16} />
               {downloadLabel}
             </Button>
           </div>
+          {!analysisReady && (
+            <div className="mb-4 rounded-2xl border border-amber-300/30 bg-amber-400/10 p-3 text-sm text-amber-100">
+              Opportunities will activate after analysis is complete.
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {opportunities.map((opp) => (
@@ -431,7 +500,7 @@ function App() {
                 key={opp.id}
                 className={clsx(
                   'rounded-2xl border p-4 backdrop-blur transition',
-                  selectedOpportunity.id === opp.id ? 'border-indigo-300/50 bg-indigo-500/15' : 'border-white/10 bg-black/20',
+                  selectedOpportunity?.id === opp.id ? 'border-indigo-300/50 bg-indigo-500/15' : 'border-white/10 bg-black/20',
                 )}
               >
                 <div className="mb-3 flex items-start justify-between">
@@ -443,10 +512,21 @@ function App() {
                 <h3 className="text-lg font-semibold">{opp.name}</h3>
                 <p className="mt-2 text-sm text-white/72">{opp.pitch}</p>
                 <div className="mt-4 flex gap-2">
-                  <Button onClick={() => setSelectedOpportunity(opp)} className="flex-1 text-xs">
+                  <Button
+                    onClick={() => setSelectedOpportunity(opp)}
+                    disabled={!analysisReady}
+                    className="flex-1 text-xs"
+                  >
                     Select
                   </Button>
-                  <Button onClick={() => setOpenPrd(true)} className="flex-1 text-xs border-indigo-200/35 bg-indigo-500/15">
+                  <Button
+                    onClick={() => {
+                      setSelectedOpportunity(opp)
+                      setOpenPrd(true)
+                    }}
+                    disabled={!analysisReady}
+                    className="flex-1 text-xs border-indigo-200/35 bg-indigo-500/15"
+                  >
                     Expand for PRD
                   </Button>
                 </div>
@@ -478,7 +558,7 @@ function App() {
                   <p className="text-xs uppercase tracking-[0.18em] text-white/50">Step 4</p>
                   <h2 className="text-2xl font-semibold">PRD Generator</h2>
                   <p className="mt-1 text-sm text-white/60">
-                    Editorial India-only draft for: {selectedOpportunity.name}
+                    Editorial India-only draft for: {selectedOpportunity?.name}
                   </p>
                 </div>
                 <Button onClick={() => setOpenPrd(false)} className="rounded-full p-2">
