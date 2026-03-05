@@ -3,57 +3,132 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Research Play Store Opportunity</title>
+  <title>Play Store Research Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <main class="container">
-    <header class="hero">
-      <h1>Research Play Store Opportunity</h1>
-      <p>Choose market inputs and generate category charts, competitor deep-dive, and top opportunities.</p>
-    </header>
+  <main class="page-shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Play Store Opportunity Studio</p>
+        <h1>Research, Rank, Initialize, and Generate PRD</h1>
+        <p class="lead">Choose your category and market, generate structured documents, and unlock PRD only after project initialization.</p>
+      </div>
+      <div class="hero-orb" aria-hidden="true"></div>
+    </section>
 
-    <section class="panel">
-      <form id="research-form">
-        <div class="grid">
-          <label>
-            Category
-            <select name="category" required>
-              {% for cat in categories %}
-              <option value="{{ cat }}">{{ cat }}</option>
-              {% endfor %}
-            </select>
-          </label>
-          <label>
-            Country
-            <input name="country" value="in" maxlength="2" required>
-          </label>
-          <label>
-            Language
-            <input name="lang" value="en" maxlength="5" required>
-          </label>
-          <label>
-            Query
-            <input name="query" value="AI habit tracker" required>
-          </label>
-          <label>
-            Chart Limit
-            <input type="number" name="chartLimit" value="25" min="10" max="60">
-          </label>
-          <label>
-            Deep-Dive Apps
-            <input type="number" name="deepDiveCount" value="8" min="3" max="15">
-          </label>
-        </div>
-        <button id="run-btn" type="submit">Run Research</button>
+    <section class="panel input-studio">
+      <h2>Input Studio</h2>
+      <form id="research-form" class="form-grid">
+        <label>
+          Category
+          <select name="category" required>
+            {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Country
+          <input name="country" value="in" maxlength="2" required>
+        </label>
+        <label>
+          Language
+          <input name="lang" value="en" maxlength="5" required>
+        </label>
+        <label>
+          Query
+          <input name="query" value="AI habit tracker" required>
+        </label>
+        <label>
+          Chart Limit
+          <input type="number" name="chartLimit" value="25" min="10" max="60">
+        </label>
+        <label>
+          Deep-Dive Apps
+          <input type="number" name="deepDiveCount" value="8" min="3" max="15">
+        </label>
       </form>
+      <div class="actions-row">
+        <button id="run-btn" class="btn primary" type="submit" form="research-form">Run Research</button>
+        <label class="run-loader">
+          Load Run ID
+          <input id="load-run-id" placeholder="20260305-193000-a1b2c3">
+        </label>
+        <button id="load-run-btn" class="btn ghost" type="button">Load Run</button>
+      </div>
       <p id="status" class="status"></p>
     </section>
 
-    <section id="summary" class="panel hidden"></section>
-    <section id="opportunities" class="panel hidden"></section>
-    <section id="charts" class="panel hidden"></section>
-    <section id="deepdive" class="panel hidden"></section>
+    <section id="run-overview" class="panel hidden"></section>
+
+    <section class="panel hidden" id="global-actions">
+      <h2>Global Actions</h2>
+      <div class="actions-row">
+        <button id="copy-run-id" class="btn ghost" type="button">Copy Run ID</button>
+        <a id="download-all" class="btn primary" href="#" download>Download All Documents (.zip)</a>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="documents-panel">
+      <h2>Document Navigator</h2>
+      <div id="document-grid" class="doc-grid"></div>
+    </section>
+
+    <section class="panel hidden" id="viewer-panel">
+      <h2>Document Viewer</h2>
+      <div id="viewer-meta" class="viewer-meta"></div>
+      <pre id="viewer-content" class="viewer-content"></pre>
+    </section>
+
+    <section class="panel hidden" id="opportunities-panel">
+      <h2>Opportunity Ranking</h2>
+      <div id="opportunities-grid" class="opp-grid"></div>
+    </section>
+
+    <section class="panel hidden" id="init-panel">
+      <h2>Initialization Stepper</h2>
+      <ol class="stepper">
+        <li>Select one ranked opportunity.</li>
+        <li>Set project name and stack preference.</li>
+        <li>Initialize project to unlock PRD generation.</li>
+      </ol>
+      <form id="init-form" class="form-grid compact">
+        <label>
+          Selected Rank
+          <input id="selected-rank" type="number" min="1" max="3" value="1" required>
+        </label>
+        <label>
+          Project Name
+          <input id="project-name" value="AI Habit Studio" required>
+        </label>
+        <label>
+          Stack Preference
+          <select id="stack-pref">
+            <option>Flutter</option>
+            <option>Kotlin + Jetpack Compose</option>
+            <option>React Native</option>
+          </select>
+        </label>
+      </form>
+      <button id="init-btn" class="btn primary" type="button">Initialize Project</button>
+      <p id="init-status" class="status"></p>
+    </section>
+
+    <section class="panel hidden" id="prd-panel">
+      <h2>PRD Panel</h2>
+      <p id="prd-lock" class="lock-note">PRD is locked until project initialization is complete.</p>
+      <div class="actions-row">
+        <button id="generate-prd" class="btn primary" type="button" disabled>Generate PRD</button>
+        <a id="prd-md" class="btn ghost disabled-link" href="#" download>Download PRD MD</a>
+        <a id="prd-json" class="btn ghost disabled-link" href="#" download>Download PRD JSON</a>
+        <a id="prd-pdf" class="btn ghost disabled-link" href="#" download>Download PRD PDF</a>
+      </div>
+      <p id="prd-status" class="status"></p>
+    </section>
   </main>
 
   <script src="/static/app.js"></script>

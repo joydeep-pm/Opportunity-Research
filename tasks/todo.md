@@ -59,3 +59,30 @@
   - Saved payloads:
     - `outputs/web_api_smoke_in_ai_habit.json`
     - `outputs/web_api_smoke2.json`
+
+## Research Studio Upgrade Plan
+- [x] Refactor backend into run-based research pipeline with persisted artifacts.
+- [x] Add document generation pipeline for non-PRD docs in MD/JSON/PDF.
+- [x] Add gated PRD generation endpoint (requires initialize).
+- [x] Add document listing, per-document download, and zip download endpoints.
+- [x] Redesign frontend into premium research studio layout with document navigator and viewer.
+- [x] Implement initialization stepper and PRD lock/unlock behavior.
+- [ ] Run end-to-end verification against all new API contracts and UI-critical flows.
+
+## React Dashboard Build Plan
+- [x] Scaffold `playintel-dashboard` React app with Vite.
+- [x] Configure Tailwind CSS and global dark theme tokens for Midnight Obsidian visuals.
+- [x] Build high-fidelity dashboard layout with animated sections (Header, Discovery, Workbench, Opportunity Hub, PRD Generator).
+- [x] Implement interactive behaviors (category context updates, 3-second analyze thinking state, PRD slide-over, mock download actions).
+- [x] Ensure responsive behavior for laptop and tablet widths.
+- [x] Run production build verification.
+
+## React Dashboard Review
+- Added new React app: `playintel-dashboard/`
+- Core files implemented:
+  - `playintel-dashboard/src/App.jsx`
+  - `playintel-dashboard/src/index.css`
+  - `playintel-dashboard/vite.config.js`
+  - `playintel-dashboard/package.json` (+ dependencies)
+- Verification:
+  - `cd '/Users/joy/Opportunity Research/playintel-dashboard' && npm run build` passed successfully.
