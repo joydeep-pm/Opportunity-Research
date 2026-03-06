@@ -3,8 +3,10 @@
 ## Step 1: Backend Synthesis Pipeline
 - Script: `/Users/joy/Opportunity Research/backend/signal_engine.py`
 - Sources:
-  - Substack: Lenny, John Cutler, Elena (PLGrowth)
-  - X: `@shreyas`, `@aakashgupta` via `apidojo/tweet-scraper`
+  - RSS: Lenny, John Cutler, Elena (PLGrowth), Code Newsletter AI
+  - Serper News API (optional, recommended for freshness)
+  - X: `@shreyas`, `@aakashgupta` via `apidojo/tweet-scraper` (optional)
+- Connector mode is controlled by `SOURCE_MODE` (`rss`, `serper`, `apify`, `rss_serper`, `serper_apify`, `hybrid`/`all`).
 - Model: OpenAI (`OPENAI_MODEL`, default `gpt-4.1-mini`)
 - Output: `/Users/joy/Opportunity Research/daily_signal.md`
 
@@ -49,6 +51,9 @@
 Create `/Users/joy/Opportunity Research/backend/.env` from `.env.example` and set:
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL` (keep `gpt-4.1-mini` for lower cost)
-- `APIFY_API_TOKEN`
+- `SOURCE_MODE` (recommended: `rss_serper`)
+- `SERPER_API_KEY` (recommended)
+- `APIFY_API_TOKEN` (optional)
+- `SERPER_ENABLED`, `SERPER_QUERIES`, `SERPER_GL`, `SERPER_HL`, `SERPER_NUM`
 - `SIGNAL_WINDOW_HOURS` (default `48`)
 - `AI_NEWS_FEED_URL` (default `https://codenewsletter.ai/feed`)

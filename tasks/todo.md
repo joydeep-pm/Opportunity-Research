@@ -459,3 +459,22 @@
   - `backend/.env` now includes `AI_NEWS_FEED_URL=https://codenewsletter.ai/feed`.
 - Verification:
   - `python3 -m py_compile '/Users/joy/Opportunity Research/backend/signal_engine.py'` passed.
+
+## Signal Engine Connector Upgrade Plan (Serper)
+- [x] Refactor backend ingestion into connector modes (`SOURCE_MODE`) to support scalable connectors.
+- [x] Add Serper News connector with configurable queries and geo/language parameters.
+- [x] Make APIFY optional and non-default to keep low-cost/high-reliability baseline.
+- [x] Update env template and runbook for Serper setup and connector routing.
+- [x] Verify runtime with current env and capture behavior with/without Serper key.
+
+## Signal Engine Connector Upgrade Review (Serper)
+- Updated files:
+  - `backend/signal_engine.py`
+  - `backend/.env.example`
+  - `SIGNAL_ENGINE_RUNBOOK.md`
+- Runtime config updated:
+  - `backend/.env` now includes `SOURCE_MODE=rss_serper` and Serper connector variables.
+- Verification:
+  - `python3 -m py_compile '/Users/joy/Opportunity Research/backend/signal_engine.py'` passed.
+  - `'/Users/joy/Opportunity Research/run_signal_once.sh'` passed.
+  - Observed expected runtime behavior with no Serper key: `SERPER_API_KEY not set. Skipping Serper connector.`

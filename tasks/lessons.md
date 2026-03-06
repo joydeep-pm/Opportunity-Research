@@ -42,3 +42,9 @@
 - Mistake pattern: Using inferred/default handles instead of the user’s exact creator identifiers.
 - Preventive rule: Confirm and lock exact account handles/feed URLs before finalizing scraper defaults.
 - Preventive rule: Apply source updates in both runtime `.env` and `.env.example`, and align code fallbacks with the same values.
+
+## 2026-03-06 - Add connector strategy when user requests freshness
+- Trigger: User asked for connectors and explicitly requested Serper for fresher, updated output.
+- Mistake pattern: Relying only on initial RSS/API setup without a configurable connector strategy.
+- Preventive rule: When freshness is a priority, implement pluggable connector routing (`SOURCE_MODE`) and expose connector credentials/settings via env.
+- Preventive rule: Keep a low-cost default mode and make higher-cost connectors opt-in.
