@@ -587,3 +587,8 @@
   - Antigravity sidebar `tool` routes now open mapped full skill panels by default.
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).
+
+## Remove Hybrid Shell Plan
+- [x] Remove the outer antigravity shell layout that wrapped the full workspace UI.
+- [x] Keep full skill runtime as the only primary interface surface.
+- [x] Verify build and push.

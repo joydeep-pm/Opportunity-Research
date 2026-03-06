@@ -96,3 +96,9 @@
 - Mistake pattern: Shipping a visual revamp that replaced real module implementations with placeholder panels.
 - Preventive rule: Visual refactors must preserve functional parity; placeholders are only acceptable behind explicit feature flags.
 - Preventive rule: Keep the full skill runtime as the default rendering path unless user explicitly asks for a reduced demo mode.
+
+## 2026-03-06 - Avoid nested-shell UI architecture
+- Trigger: User flagged current screen as nonsensical due mixed shell + workspace layouts.
+- Mistake pattern: Rendering a global dashboard shell around an already self-contained workspace shell.
+- Preventive rule: Only one top-level layout shell should own navigation and framing at a time.
+- Preventive rule: When restoring legacy/full workspace, remove competing outer wrappers completely.
