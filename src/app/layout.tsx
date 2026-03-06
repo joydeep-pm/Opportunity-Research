@@ -2,8 +2,8 @@
 
 import localFont from "next/font/local";
 import "./globals.css";
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 const geistSans = localFont({
@@ -30,12 +30,14 @@ const NAV_GROUPS = [
     items: [
       { id: "play-store", label: "Play Store Research" },
       { id: "competitor", label: "Competitor Tracking" },
+      { id: "validator", label: "Idea Validator" },
     ],
   },
   {
     title: "Content",
     items: [
       { id: "linkedin", label: "LinkedIn Writer" },
+      { id: "prompt", label: "Prompt Engineering" },
       { id: "prd", label: "PRD Generator" },
     ],
   },
@@ -44,38 +46,78 @@ const NAV_GROUPS = [
     items: [
       { id: "idp", label: "1:1 IDP Builder" },
       { id: "pulse", label: "Pulse Timesheets" },
+      { id: "product", label: "Product Intelligence" },
     ],
   },
 ];
 
+const TOOL_LABELS: Record<string, string> = NAV_GROUPS.flatMap((group) => group.items).reduce(
+  (acc, item) => {
+    acc[item.id] = item.label;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
+
+function resolveToolIntent(query: string, fallback: string): string {
+  const q = query.trim().toLowerCase();
+  if (!q) return fallback;
+
+  if (q.includes("signal") || q.includes("daily") || q.includes("feed")) return "signal";
+  if (q.includes("vault") || q.includes("saved")) return "vault";
+  if (q.includes("play") || q.includes("market")) return "play-store";
+  if (q.includes("competitor") || q.includes("track")) return "competitor";
+  if (q.includes("validator") || q.includes("idea")) return "validator";
+  if (q.includes("linkedin") || q.includes("post") || q.includes("content")) return "linkedin";
+  if (q.includes("prompt")) return "prompt";
+  if (q.includes("prd")) return "prd";
+  if (q.includes("idp") || q.includes("1:1")) return "idp";
+  if (q.includes("pulse") || q.includes("timesheet")) return "pulse";
+  if (q.includes("product")) return "product";
+
+  return fallback;
+}
+
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const currentTool = searchParams.get("tool") || "signal";
   const isReadingExperience = currentTool === "signal" || currentTool === "vault";
+  const [commandQuery, setCommandQuery] = useState("");
+
+  const commandHint = useMemo(() => {
+    if (!commandQuery.trim()) return "Type and press Enter";
+    return `Open: ${TOOL_LABELS[resolveToolIntent(commandQuery, currentTool)] || "Current Tool"}`;
+  }, [commandQuery, currentTool]);
+
+  const runCommand = (event: FormEvent) => {
+    event.preventDefault();
+    const nextTool = resolveToolIntent(commandQuery, currentTool);
+    router.push(`/?tool=${nextTool}`);
+    setCommandQuery("");
+  };
 
   return (
     <div className="flex h-full w-full">
-      {/* Left Sidebar: Fixed 240px - The Router */}
-      <aside className="w-[240px] shrink-0 border-r border-zinc-200 bg-white flex flex-col items-stretch z-20 shadow-[1px_0_2px_rgba(0,0,0,0.02)]">
-        <div className="h-14 border-b border-zinc-200 flex items-center px-4 shrink-0">
-          <span className="font-bold text-sm tracking-tight text-zinc-900">KWC OS</span>
+      <aside className="z-20 flex w-[240px] shrink-0 flex-col items-stretch border-r border-zinc-200 bg-white shadow-[1px_0_2px_rgba(0,0,0,0.02)]">
+        <div className="flex h-14 shrink-0 items-center border-b border-zinc-200 px-4">
+          <span className="text-sm font-bold tracking-tight text-zinc-900">KWC OS</span>
         </div>
-        <nav className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-6">
+        <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
           {NAV_GROUPS.map((group) => (
             <div key={group.title} className="flex flex-col gap-1">
-              <div className="text-[10px] font-bold text-zinc-400 mb-1.5 uppercase tracking-widest px-2">
-                {group.title}
-              </div>
+              <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">{group.title}</div>
               {group.items.map((item) => {
                 const isActive = currentTool === item.id;
                 return (
                   <Link
                     key={item.id}
                     href={`/?tool=${item.id}`}
-                    className={`text-left px-2 py-1.5 text-sm font-medium rounded transition-colors ${isActive
-                      ? "bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200/50"
-                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 border border-transparent"
-                      }`}
+                    className={`rounded border px-2 py-1.5 text-left text-sm font-medium transition-colors ${
+                      isActive
+                        ? "border-zinc-200/50 bg-zinc-100 text-zinc-900 shadow-sm"
+                        : "border-transparent text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                    }`}
                   >
                     {item.label}
                   </Link>
@@ -86,51 +128,91 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      {/* Main Feed: Fluid Central Pane */}
-      <main className="flex-1 flex flex-col min-w-0 bg-zinc-50 relative z-0">
-        {/* Header area for True Omnibar */}
-        <header className="h-14 border-b border-zinc-200 flex items-center px-6 sticky top-0 bg-white/95 backdrop-blur z-10 shrink-0 shadow-sm">
-          <div className="flex-1 max-w-xl flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded px-3 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] text-zinc-400 cursor-text hover:bg-white hover:border-zinc-300 transition-all">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <span className="text-[13px] font-medium">Search signals or execute command (Cmd + K)</span>
-          </div>
+      <main className="relative z-0 flex min-w-0 flex-1 flex-col bg-zinc-50">
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center border-b border-zinc-200 bg-white/95 px-6 shadow-sm backdrop-blur">
+          <form
+            onSubmit={runCommand}
+            className="flex max-w-xl flex-1 items-center gap-2 rounded border border-zinc-200 bg-zinc-50 px-3 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] transition-all hover:border-zinc-300 hover:bg-white"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="shrink-0 text-zinc-400"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              value={commandQuery}
+              onChange={(event) => setCommandQuery(event.target.value)}
+              className="w-full bg-transparent text-[13px] font-medium text-zinc-700 outline-none placeholder:text-zinc-400"
+              placeholder="Search signals or execute command (Cmd + K)"
+              aria-label="Command search"
+            />
+            <button
+              type="submit"
+              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 transition hover:bg-zinc-100"
+            >
+              Go
+            </button>
+          </form>
+          <div className="ml-3 text-[11px] font-medium text-zinc-500">{commandHint}</div>
         </header>
 
-        <div className="flex-1 overflow-y-auto w-full relative">
-          <div className="max-w-4xl mx-auto py-8 px-6">
-            {children}
-          </div>
+        <div className="relative w-full flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-4xl px-6 py-8">{children}</div>
         </div>
       </main>
 
-      {/* Right Drawer: Contextual */}
       {isReadingExperience ? (
-        <aside className="w-[280px] shrink-0 border-l border-zinc-200 bg-white flex flex-col z-20 shadow-[-1px_0_2px_rgba(0,0,0,0.02)]">
-          <div className="h-14 border-b border-zinc-200 flex items-center px-4 shrink-0">
-            <h2 className="font-bold text-sm text-zinc-900 tracking-tight">The Vault</h2>
+        <aside className="z-20 flex w-[280px] shrink-0 flex-col border-l border-zinc-200 bg-white shadow-[-1px_0_2px_rgba(0,0,0,0.02)]">
+          <div className="flex h-14 shrink-0 items-center border-b border-zinc-200 px-4">
+            <h2 className="text-sm font-bold tracking-tight text-zinc-900">The Vault</h2>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-zinc-50/50">
-            <div className="border-l-[3px] border-l-blue-500 bg-white border border-zinc-200 rounded shadow-sm hover:shadow transition-shadow overflow-hidden cursor-pointer">
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto bg-zinc-50/50 p-4">
+            <div className="cursor-pointer overflow-hidden rounded border border-zinc-200 border-l-[3px] border-l-blue-500 bg-white shadow-sm transition-shadow hover:shadow">
               <div className="p-3">
-                <div className="text-[9px] uppercase font-bold text-zinc-400 tracking-widest mb-1">AI</div>
-                <h3 className="text-xs font-semibold text-zinc-800 leading-snug break-words">New Transformer Architecture for Edge Devices</h3>
+                <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-zinc-400">AI</div>
+                <h3 className="text-xs font-semibold leading-snug text-zinc-800 break-words">
+                  New Transformer Architecture for Edge Devices
+                </h3>
               </div>
             </div>
-            <div className="border-l-[3px] border-l-green-500 bg-white border border-zinc-200 rounded shadow-sm hover:shadow transition-shadow overflow-hidden cursor-pointer">
+            <div className="cursor-pointer overflow-hidden rounded border border-zinc-200 border-l-[3px] border-l-green-500 bg-white shadow-sm transition-shadow hover:shadow">
               <div className="p-3">
-                <div className="text-[9px] uppercase font-bold text-zinc-400 tracking-widest mb-1">Fintech</div>
-                <h3 className="text-xs font-semibold text-zinc-800 leading-snug break-words">RBI Guidelines on Digital Lending App Audits</h3>
+                <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-zinc-400">Fintech</div>
+                <h3 className="text-xs font-semibold leading-snug text-zinc-800 break-words">
+                  RBI Guidelines on Digital Lending App Audits
+                </h3>
               </div>
             </div>
           </div>
         </aside>
       ) : (
-        <aside className="w-[280px] shrink-0 border-l border-zinc-200 bg-zinc-50 flex flex-col z-20 items-center justify-center p-6 text-center">
-          <div className="w-12 h-12 bg-white border border-zinc-200 rounded-full flex items-center justify-center mb-4 shadow-sm">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        <aside className="z-20 flex w-[280px] shrink-0 flex-col items-center justify-center border-l border-zinc-200 bg-zinc-50 p-6 text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-sm">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-zinc-400"
+            >
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
           </div>
-          <h3 className="text-sm font-bold text-zinc-800 mb-1">Contextual Tools</h3>
-          <p className="text-xs text-zinc-500 font-medium">Filters and metadata for &quot;{currentTool}&quot; will appear here.</p>
+          <h3 className="mb-1 text-sm font-bold text-zinc-800">Contextual Tools</h3>
+          <p className="text-xs font-medium text-zinc-500">Filters and metadata for &quot;{currentTool}&quot; will appear here.</p>
         </aside>
       )}
     </div>
@@ -144,8 +226,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 text-zinc-900 overflow-hidden h-screen w-screen selection:bg-zinc-200 selection:text-zinc-900`}>
-        <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center bg-zinc-50 text-zinc-500">Loading KWC...</div>}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} h-screen w-screen overflow-hidden bg-zinc-50 text-zinc-900 antialiased selection:bg-zinc-200 selection:text-zinc-900`}
+      >
+        <Suspense
+          fallback={<div className="flex h-screen w-screen items-center justify-center bg-zinc-50 text-zinc-500">Loading KWC...</div>}
+        >
           <LayoutContent>{children}</LayoutContent>
         </Suspense>
       </body>

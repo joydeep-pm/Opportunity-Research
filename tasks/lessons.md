@@ -84,3 +84,9 @@
 - Mistake pattern: Pausing early on dirty local state before checking whether remote actually has new commits.
 - Preventive rule: First run `git fetch` + divergence check (`main...origin/main`) to verify if pull is needed; then proceed with the correct integration path.
 - Preventive rule: If remote is unchanged and local contains intended user edits, validate, commit, and push those edits directly.
+
+## 2026-03-06 - Never leave primary CTAs as static placeholders
+- Trigger: User reported that none of the visible buttons were working in the antigravity UI.
+- Mistake pattern: Shipping presentational controls (`Run Tool`, filter toggles, command bar) without actual handlers.
+- Preventive rule: Before release, test every visible CTA once and confirm state change, navigation, or output mutation.
+- Preventive rule: If a control is intentionally non-functional, label it explicitly as preview-only.

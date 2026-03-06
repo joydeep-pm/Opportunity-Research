@@ -551,3 +551,23 @@
   - `src/lib/legacy_page.tsx`
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).
+
+## E2E Interaction Fix Plan (Antigravity UI)
+- [x] Wire all visible CTA controls with functional handlers (search, Run Tool, feed controls, card controls).
+- [x] Ensure each tool route (`/?tool=*`) has interactive execution feedback and output rendering.
+- [x] Run local Playwright E2E checks across sidebar navigation and primary buttons.
+- [x] Verify production build, commit, and push.
+
+## E2E Interaction Fix Review (Antigravity UI)
+- Updated files:
+  - `src/app/layout.tsx`
+  - `src/app/page.tsx`
+  - `src/components/SignalCard.tsx`
+- Behavior fixes:
+  - Command bar is now actionable and routes to matched tools.
+  - Tool pages now execute via `Run Tool` with visible output pane updates.
+  - Signal feed controls now function (`Latest`, `Top Rated`, `Load Older`).
+  - Signal card actions now function (`Share`, `Run Workflow`, `Pin`).
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).
+  - Local Playwright smoke E2E passed (`E2E_SMOKE_PASS`) against: signal route controls, run workflow route, run-tool output, command search routing, and sidebar routing.
