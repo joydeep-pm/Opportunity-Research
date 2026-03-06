@@ -494,3 +494,10 @@
   - `src/app/api/signal/refresh/route.ts`
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` passed.
+
+## Signal Serverless Refactor Plan (Vercel-safe)
+- [x] Replace Python spawn refresh route with pure Node pipeline (RSS + Serper + OpenAI).
+- [x] Add in-memory signal snapshot state and fallback reads in `/api/signal`.
+- [x] Return stable JSON errors/help from refresh route for UI resiliency.
+- [x] Verify with root production build.
+- [ ] Commit and push deploy-ready fix to `main`.

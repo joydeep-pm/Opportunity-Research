@@ -66,3 +66,9 @@
 - Mistake pattern: Assuming local process execution semantics in serverless runtime and not handling `child_process` error events.
 - Preventive rule: Always wire `child.on('error')` and return structured JSON errors with actionable guidance.
 - Preventive rule: In client fetch handlers, guard non-JSON responses to avoid masking backend failures as generic network errors.
+
+## 2026-03-06 - Avoid serverless-local persistence assumptions
+- Trigger: User could open Signal workspace but refresh/read failed in deployed runtime because Python/file persistence assumptions did not hold.
+- Mistake pattern: Building API flows that require local scripts and writable repo files in serverless.
+- Preventive rule: Default cloud-facing refresh routes to pure Node/HTTP pipelines; treat local script execution as local-dev only.
+- Preventive rule: Add memory fallback for freshly generated outputs when persistent disk is unavailable.
