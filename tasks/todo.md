@@ -500,4 +500,19 @@
 - [x] Add in-memory signal snapshot state and fallback reads in `/api/signal`.
 - [x] Return stable JSON errors/help from refresh route for UI resiliency.
 - [x] Verify with root production build.
-- [ ] Commit and push deploy-ready fix to `main`.
+- [x] Commit and push deploy-ready fix to `main`.
+
+## Signal Serverless Refactor Review (Vercel-safe)
+- Updated files:
+  - `src/app/api/signal/refresh/route.ts`
+  - `src/app/api/signal/route.ts`
+- Added files:
+  - `src/app/api/signal/state.ts`
+- Process notes:
+  - Replaced Python process execution with Node-native connector pipeline (RSS + optional Serper + OpenAI synthesis).
+  - Added runtime memory snapshot fallback so freshly generated signal remains readable even if filesystem persistence is unavailable.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).
+- Git:
+  - Commit: `cad2b39bfbdc98b7784fc328ada25f94ffada00c`
+  - Pushed to: `origin/main`
