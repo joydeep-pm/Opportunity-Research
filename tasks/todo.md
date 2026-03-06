@@ -551,3 +551,21 @@
   - `src/lib/legacy_page.tsx`
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).
+
+## Restore Missing Sections Plan
+- [x] Add section launcher on home so non-signal modules are visible and discoverable.
+- [x] Re-expose full multi-skill workspace at `/workspace`.
+- [x] Support deep-linking from section launcher to workspace skill (`/workspace?skill=<id>`).
+- [x] Verify root production build and push.
+
+## Restore Missing Sections Review
+- Updated files:
+  - `src/app/page.tsx`
+  - `src/app/workspace/page.tsx`
+  - `src/lib/legacy_page.tsx`
+- UX outcomes:
+  - Home is no longer signals-only; all sections are visible via a launcher.
+  - Full prior multi-skill interface is accessible at `/workspace`.
+  - Section buttons can open the exact target skill directly in workspace.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).

@@ -84,3 +84,9 @@
 - Mistake pattern: Pausing early on dirty local state before checking whether remote actually has new commits.
 - Preventive rule: First run `git fetch` + divergence check (`main...origin/main`) to verify if pull is needed; then proceed with the correct integration path.
 - Preventive rule: If remote is unchanged and local contains intended user edits, validate, commit, and push those edits directly.
+
+## 2026-03-06 - Preserve feature parity during visual revamps
+- Trigger: User reported that only signals were visible and other sections disappeared after UI revamp.
+- Mistake pattern: Replacing navigation-heavy product surfaces with a focused single-feed screen without preserving module access.
+- Preventive rule: During UI overhauls, enforce a parity checklist for core sections/modules before shipping.
+- Preventive rule: If introducing a focused landing view, provide an explicit launcher to all legacy sections.
