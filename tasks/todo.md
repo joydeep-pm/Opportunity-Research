@@ -592,3 +592,19 @@
 - [x] Remove the outer antigravity shell layout that wrapped the full workspace UI.
 - [x] Keep full skill runtime as the only primary interface surface.
 - [x] Verify build and push.
+
+## Restore Styling + Full Feature Visibility Plan
+- [x] Fix Tailwind content scanning to include `src/lib` so legacy workspace classes are not purged.
+- [x] Validate production build and runtime UI rendering.
+- [ ] Push only after verification passes.
+
+## Restore Styling + Full Feature Visibility Review
+- Updated files:
+  - `tailwind.config.ts`
+- Root cause:
+  - Tailwind `content` paths excluded `src/lib/**`, so class names used by the full workspace (`src/lib/legacy_page.tsx`) were purged in production, causing unstyled UI.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed.
+  - Local runtime checks:
+    - `/` renders `Intent-Driven Omnibar` with `Quick Launch`.
+    - `/?tool=product` renders `Product Intelligence` panel with action button.

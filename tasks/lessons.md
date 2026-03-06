@@ -102,3 +102,9 @@
 - Mistake pattern: Rendering a global dashboard shell around an already self-contained workspace shell.
 - Preventive rule: Only one top-level layout shell should own navigation and framing at a time.
 - Preventive rule: When restoring legacy/full workspace, remove competing outer wrappers completely.
+
+## 2026-03-06 - Validate deployed rendering path before push
+- Trigger: User reported the UI was complete crap and called out pushes without sufficient validation.
+- Mistake pattern: Validating only build/type-check while missing CSS purge/runtime rendering regressions.
+- Preventive rule: For UI changes, always validate runtime rendering on the exact route path(s) impacted, not build output alone.
+- Preventive rule: Include at least one explicit check for styling integrity (Tailwind class availability / rendered layout) before pushing.
