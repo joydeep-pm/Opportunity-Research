@@ -108,3 +108,15 @@
 - Mistake pattern: Validating only build/type-check while missing CSS purge/runtime rendering regressions.
 - Preventive rule: For UI changes, always validate runtime rendering on the exact route path(s) impacted, not build output alone.
 - Preventive rule: Include at least one explicit check for styling integrity (Tailwind class availability / rendered layout) before pushing.
+
+## 2026-03-06 - Fix regressions by integration, not fallback replacement
+- Trigger: User reported old UI returned after functionality restoration.
+- Mistake pattern: Solving broken features by reverting to legacy UI instead of integrating features into current design system.
+- Preventive rule: When users ask to preserve a new UI direction, integrate missing capabilities into that UI; do not swap back wholesale.
+- Preventive rule: Validate both dimensions explicitly before push: feature parity and visual direction.
+
+## 2026-03-06 - Preserve visual direction during recovery fixes
+- Trigger: User flagged that old UI had been brought back again.
+- Mistake pattern: Prioritizing quick restoration of missing functionality without anchoring to the active design direction.
+- Preventive rule: For UI regressions, define the target shell first (what must stay visually), then restore capabilities inside that shell.
+- Preventive rule: Add verification screenshots/checks for both "all modules visible" and "current shell present" before push.

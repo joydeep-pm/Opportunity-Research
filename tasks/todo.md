@@ -608,3 +608,29 @@
   - Local runtime checks:
     - `/` renders `Intent-Driven Omnibar` with `Quick Launch`.
     - `/?tool=product` renders `Product Intelligence` panel with action button.
+
+## Antigravity + Full Features Integration Plan
+- [x] Restore antigravity shell layout (sidebar + command bar) as primary frame.
+- [x] Embed full legacy skill runtime into center pane (no placeholder-only screens).
+- [x] Route `?tool=` to real skill panels (signal, market, content, validator, workflow, prompt, product, idp).
+- [x] Remove nested-shell duplication and keep one coherent surface.
+- [x] Validate with production build + runtime route checks and push.
+
+## Antigravity + Full Features Integration Review
+- Updated files:
+  - `src/app/layout.tsx`
+  - `src/app/page.tsx`
+  - `src/lib/legacy_page.tsx`
+- Outcome:
+  - Restored antigravity shell (left nav + command bar + right context/vault rail).
+  - Kept full skill runtime functional inside the center pane via embedded mode.
+  - Added `workflow` route mapping and remount-safe query handling so tool switches do not carry stale modal state.
+  - Fixed output drawer close interaction in embedded mode by scoping drawer bounds to the center workspace.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).
+  - Playwright runtime checks on local dev server:
+    - `/?tool=product` -> generated Product brief output.
+    - command bar route switch to `signal` -> opened Signal workspace.
+    - `/?tool=play-store` -> generated Opportunity Snapshot output.
+    - `/?tool=idp` -> generated Strategic IDP output.
+    - `/?tool=workflow` -> Agent Workflow workspace loaded with execution inputs.

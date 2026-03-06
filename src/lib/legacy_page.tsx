@@ -60,6 +60,7 @@ type SkillWrapperProps = {
 
 type LegacyHomeProps = {
   initialSkillId?: string | null;
+  embedded?: boolean;
 };
 
 function toLines(raw: string): string[] {
@@ -593,7 +594,7 @@ function NarrativeText({ text }: { text: string }) {
   );
 }
 
-export default function Home({ initialSkillId = null }: LegacyHomeProps) {
+export default function Home({ initialSkillId = null, embedded = false }: LegacyHomeProps) {
   const normalizedInitialSkillId = useMemo(
     () => (initialSkillId && SKILLS.some((skill) => skill.id === initialSkillId) ? initialSkillId : null),
     [initialSkillId],
@@ -607,9 +608,11 @@ export default function Home({ initialSkillId = null }: LegacyHomeProps) {
 
   useEffect(() => {
     if (normalizedInitialSkillId) {
+      setOutput(null);
       setActiveSkillId(normalizedInitialSkillId);
       return;
     }
+    setOutput(null);
     setActiveSkillId(null);
   }, [normalizedInitialSkillId]);
 
@@ -653,6 +656,158 @@ export default function Home({ initialSkillId = null }: LegacyHomeProps) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeSkillId, output]);
+
+  if (embedded) {
+    return (
+      <div className="relative">
+        <AnimatePresence mode="wait">
+          {!activeSkill && (
+            <motion.div
+              key="embedded-omnibar"
+              layoutId="omnibar-shell"
+              initial={{ opacity: 0, y: 14, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 170, damping: 20 }}
+              className="rounded-3xl border border-zinc-200 bg-white/90 p-5 shadow-[0_20px_60px_rgba(2,6,23,0.08)] backdrop-blur"
+            >
+              <div
+                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition ${
+                  omnibarFocused ? "border-zinc-400" : "border-zinc-300"
+                }`}
+              >
+                <Search size={18} className="text-zinc-500" />
+                <input
+                  ref={inputRef}
+                  value={query}
+                  onFocus={() => setOmnibarFocused(true)}
+                  onBlur={() => setOmnibarFocused(false)}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && filteredSkills.length) {
+                      setActiveSkillId(filteredSkills[0].id);
+                    }
+                  }}
+                  className="w-full bg-transparent text-base text-zinc-900 outline-none placeholder:text-zinc-500"
+                  placeholder="Route intent to skill... (e.g., signal, play store, linkedin, idp, prompt)"
+                />
+              </div>
+
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">Quick Launch</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {SKILLS.map((skill) => {
+                    const Icon = skill.icon;
+                    return (
+                      <button
+                        key={`quick-${skill.id}`}
+                        onClick={() => setActiveSkillId(skill.id)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-sm text-zinc-700 transition hover:border-zinc-400 hover:bg-white"
+                      >
+                        <Icon size={16} className="text-zinc-600" />
+                        <span>{skill.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {filteredSkills.map((skill) => {
+                  const Icon = skill.icon;
+                  return (
+                    <button
+                      key={skill.id}
+                      onClick={() => setActiveSkillId(skill.id)}
+                      className="flex w-full items-start gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left transition hover:border-zinc-400 hover:shadow-sm"
+                    >
+                      <Icon size={18} className="mt-0.5 text-zinc-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-900">{skill.name}</p>
+                        <p className="mt-0.5 text-xs text-zinc-600">{skill.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+                {!filteredSkills.length && (
+                  <p className="rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm text-zinc-600">
+                    No matching skill. Try another intent phrase.
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeSkill && (
+            <motion.div
+              key={`embedded-${activeSkill.id}`}
+              layoutId="omnibar-shell"
+              initial={{ opacity: 0, y: 12, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.985 }}
+              transition={{ type: "spring", stiffness: 170, damping: 20 }}
+              className="rounded-3xl border border-zinc-200 bg-[#FCFCFC] p-5 shadow-[0_20px_60px_rgba(2,6,23,0.08)]"
+            >
+              <SkillWrapper
+                skill={activeSkill}
+                onClose={() => setActiveSkillId(null)}
+                onRun={(payload) => setOutput(payload)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {output && (
+            <>
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setOutput(null)}
+                className="fixed inset-y-0 left-[240px] right-[280px] z-30 bg-zinc-900/10"
+              />
+              <motion.div
+                initial={{ y: "100%", opacity: 0.7 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0.7 }}
+                transition={{ type: "spring", stiffness: 180, damping: 22 }}
+                className="fixed bottom-0 left-[240px] right-[280px] z-40 mx-auto w-auto rounded-t-3xl border border-zinc-200 bg-white p-5 shadow-[0_-20px_60px_rgba(2,6,23,0.12)]"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-zinc-900">{output.title}</h3>
+                  <button
+                    onClick={() => setOutput(null)}
+                    className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+                  >
+                    Close
+                  </button>
+                </div>
+                {Array.isArray(output.sections) && output.sections.length > 0 ? (
+                  <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <div className={`grid gap-4 ${output.sections.length > 1 ? "md:grid-cols-2" : ""}`}>
+                      {output.sections.map((section, index) => (
+                        <article key={`${section.title}-${index}`} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                          <h4 className="text-base font-semibold text-zinc-900">{section.title}</h4>
+                          <div className="mt-3">
+                            <NarrativeText text={section.body} />
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <NarrativeText text={output.body} />
+                  </div>
+                )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#FAFAFA] text-zinc-900">

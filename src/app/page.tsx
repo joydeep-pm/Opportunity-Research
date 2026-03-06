@@ -1,12 +1,9 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
 import LegacyWorkspace from "@/lib/legacy_page";
 
-type PageProps = {
-  searchParams?: {
-    tool?: string;
-  };
-};
-
-function mapToolToSkill(tool?: string): string | null {
+function mapToolToSkill(tool?: string | null): string | null {
   switch (tool) {
     case "signal":
       return "signal";
@@ -24,6 +21,8 @@ function mapToolToSkill(tool?: string): string | null {
       return "idp";
     case "pulse":
       return "workflow";
+    case "workflow":
+      return "workflow";
     case "prompt":
       return "prompt";
     case "validator":
@@ -35,7 +34,8 @@ function mapToolToSkill(tool?: string): string | null {
   }
 }
 
-export default function Home({ searchParams }: PageProps) {
-  const skill = mapToolToSkill(searchParams?.tool);
-  return <LegacyWorkspace initialSkillId={skill} />;
+export default function Home() {
+  const searchParams = useSearchParams();
+  const skill = mapToolToSkill(searchParams.get("tool"));
+  return <LegacyWorkspace key={skill || "home"} initialSkillId={skill} embedded />;
 }
