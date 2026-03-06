@@ -90,3 +90,9 @@
 - Mistake pattern: Shipping presentational controls (`Run Tool`, filter toggles, command bar) without actual handlers.
 - Preventive rule: Before release, test every visible CTA once and confirm state change, navigation, or output mutation.
 - Preventive rule: If a control is intentionally non-functional, label it explicitly as preview-only.
+
+## 2026-03-06 - Do not replace functional skill runtime with placeholders
+- Trigger: User reported most developed features disappeared from the UI.
+- Mistake pattern: Shipping a visual revamp that replaced real module implementations with placeholder panels.
+- Preventive rule: Visual refactors must preserve functional parity; placeholders are only acceptable behind explicit feature flags.
+- Preventive rule: Keep the full skill runtime as the default rendering path unless user explicitly asks for a reduced demo mode.

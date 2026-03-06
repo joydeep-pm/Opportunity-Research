@@ -571,3 +571,19 @@
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).
   - Local Playwright smoke E2E passed (`E2E_SMOKE_PASS`) against: signal route controls, run workflow route, run-tool output, command search routing, and sidebar routing.
+
+## Restore Full Skill Visibility Plan
+- [x] Replace placeholder root page with full multi-skill workspace component.
+- [x] Map antigravity `?tool=` navigation to corresponding full skill panels.
+- [x] Keep deep-link behavior so sidebar links open the expected skill by default.
+- [x] Verify production build and push.
+
+## Restore Full Skill Visibility Review
+- Updated files:
+  - `src/app/page.tsx`
+  - `src/lib/legacy_page.tsx`
+- Outcome:
+  - Root now renders the complete skill runtime again (not placeholder-only screens).
+  - Antigravity sidebar `tool` routes now open mapped full skill panels by default.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).

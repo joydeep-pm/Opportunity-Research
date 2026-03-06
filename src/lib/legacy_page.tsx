@@ -58,6 +58,10 @@ type SkillWrapperProps = {
   onClose: () => void;
 };
 
+type LegacyHomeProps = {
+  initialSkillId?: string | null;
+};
+
 function toLines(raw: string): string[] {
   return raw
     .split("\n")
@@ -589,12 +593,25 @@ function NarrativeText({ text }: { text: string }) {
   );
 }
 
-export default function Home() {
+export default function Home({ initialSkillId = null }: LegacyHomeProps) {
+  const normalizedInitialSkillId = useMemo(
+    () => (initialSkillId && SKILLS.some((skill) => skill.id === initialSkillId) ? initialSkillId : null),
+    [initialSkillId],
+  );
+
   const [query, setQuery] = useState("");
-  const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
+  const [activeSkillId, setActiveSkillId] = useState<string | null>(normalizedInitialSkillId);
   const [output, setOutput] = useState<SkillOutput | null>(null);
   const [omnibarFocused, setOmnibarFocused] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (normalizedInitialSkillId) {
+      setActiveSkillId(normalizedInitialSkillId);
+      return;
+    }
+    setActiveSkillId(null);
+  }, [normalizedInitialSkillId]);
 
   const activeSkill = useMemo(
     () => SKILLS.find((skill) => skill.id === activeSkillId) || null,
