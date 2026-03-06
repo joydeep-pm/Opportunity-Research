@@ -30,3 +30,15 @@
 - Mistake pattern: Implementing minimal scaffolding under a high-capability skill label.
 - Preventive rule: If skill name implies expert output ("viral post writer"), ship complete generation package (hooks + final post + CTA + quality checks), not a single text transform.
 - Preventive rule: Read `SKILL.md` + references before implementing behavior so UX matches documented workflow depth.
+
+## 2026-03-06 - Validate model-provider constraints and cost preference early
+- Trigger: User asked to switch from Anthropic to OpenAI due to cost concerns after Step 1 was implemented.
+- Mistake pattern: Locking API provider too early without confirming user cost preference.
+- Preventive rule: For LLM-integrated pipelines, confirm preferred provider (OpenAI/Anthropic) and pricing sensitivity before finalizing backend wiring.
+- Preventive rule: Keep synthesis module provider-agnostic where possible to reduce rework when key/provider changes.
+
+## 2026-03-06 - Lock source identities before scraping integrations
+- Trigger: User corrected X handles and Elena Substack source (`@aakashgupta`, `@shreyas`, `plgrowth` feed).
+- Mistake pattern: Using inferred/default handles instead of the user’s exact creator identifiers.
+- Preventive rule: Confirm and lock exact account handles/feed URLs before finalizing scraper defaults.
+- Preventive rule: Apply source updates in both runtime `.env` and `.env.example`, and align code fallbacks with the same values.

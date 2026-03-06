@@ -263,3 +263,184 @@
   - Updated visible status/source labels to `linkedin-viral-post-writer.skill`.
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
+
+## Omnibar Refactor Plan
+- [x] Replace static multi-panel layout with a light-theme omnibar-first shell (no permanent sidebar).
+- [x] Implement `SkillWrapper` driven by declarative skill config JSON (name, icon, input fields, local script path).
+- [x] Add transient workspace morph transitions (Framer Motion `layoutId`) for selected skills.
+- [x] Add output drawer overlay for generated artifacts with close/escape interactions.
+- [x] Seed skills list for: Play Store Market Engine, LinkedIn Content Engine, Leadership IDP Engine, Chronos Timesheet.
+- [x] Verify build and document refactor results.
+
+## Omnibar Refactor Review
+- Refactor scope completed in:
+  - `src/app/page.tsx`
+  - `src/app/globals.css`
+- Major architecture changes:
+  - Removed static sidebar-first shell and replaced with centered omnibar router.
+  - Added reusable `SkillWrapper` that renders from declarative skill JSON config.
+  - Added transient workspace morph with `layoutId=\"omnibar-shell\"` transitions.
+  - Added output drawer (bottom slide-up) with overlay and close/escape behavior.
+  - Added `Cmd+K` shortcut behavior to return to omnibar and focus input.
+- Seeded skills now routed by omnibar:
+  - Play Store Market Engine
+  - LinkedIn Content Engine
+  - Leadership IDP Engine
+  - Chronos Timesheet
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
+
+## Leadership IDP Engine Upgrade Plan
+- [x] Refactor Leadership IDP skill output to strict executive synthesis Markdown format.
+- [x] Enforce top-down summary, MECE strengths/bottlenecks, and measurable action items in generated output.
+- [x] Accept raw 1:1 brain-dump input and derive trajectory status plus next-quarter focus.
+- [x] Verify build and document completion evidence.
+
+## Leadership IDP Engine Upgrade Review
+- Updated implementation:
+  - `src/app/page.tsx`
+- Leadership IDP engine now:
+  - accepts raw 1:1 notes as primary input,
+  - generates strict markdown in requested structure:
+    - executive summary (top-down),
+    - MECE leverage categories,
+    - structural bottlenecks with impact,
+    - measurable action resolutions.
+  - infers trajectory status (`Accelerating` / `Steady` / `Requires Pivot`) from synthesized bottleneck pattern.
+  - uses deterministic category mapping to keep outputs structured and scannable.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` succeeded (Next.js 14.2.35).
+
+## Signal Engine Step 1 Plan
+- [x] Create `backend/signal_engine.py` with Substack RSS extraction (last 48h default), X placeholder fetch via Apify actor, and Claude synthesis.
+- [x] Enforce strict output shape of exactly 5 markdown bullets and write to `daily_signal.md` at project root.
+- [x] Add `.env.example` documenting required API keys and feed/handle configuration.
+- [x] Run a backend syntax validation check and capture evidence.
+
+## Signal Engine Step 1 Review
+- Files added:
+  - `backend/signal_engine.py`
+  - `backend/.env.example`
+- Verification:
+  - `python3 -m py_compile '/Users/joy/Opportunity Research/backend/signal_engine.py'` (passes)
+
+## Signal Engine Step 2 Plan
+- [x] Initialize dedicated Next.js 14 App Router project in `/frontend` with Tailwind CSS and Framer Motion.
+- [x] Build an intent-driven omnibar landing view with smooth transitions into the Signal workspace.
+- [x] Implement Signal workspace with markdown rendering via `react-markdown`.
+- [x] Add API routes to read `daily_signal.md` and refresh by triggering `backend/signal_engine.py`.
+- [x] Verify frontend production build.
+
+## Signal Engine Step 2 Review
+- Added frontend app scaffold in:
+  - `frontend/package.json`
+  - `frontend/next.config.mjs`
+  - `frontend/postcss.config.mjs`
+  - `frontend/tailwind.config.ts`
+  - `frontend/tsconfig.json`
+  - `frontend/.eslintrc.json`
+  - `frontend/src/app/layout.tsx`
+  - `frontend/src/app/globals.css`
+  - `frontend/src/app/page.tsx`
+  - `frontend/src/app/api/signal/route.ts`
+  - `frontend/src/app/api/signal/refresh/route.ts`
+- Verification:
+  - `cd '/Users/joy/Opportunity Research/frontend' && npm install` completed.
+  - `cd '/Users/joy/Opportunity Research/frontend' && npm run build` passed (Next.js 14.2.35).
+
+## Signal Engine Step 3 Plan
+- [x] Add dependency installer script for Python backend and frontend npm dependencies.
+- [x] Add start script for frontend runtime with clear daily cron setup instructions for 7:00 AM.
+- [x] Validate script syntax and dry-run cron guidance output.
+- [x] Execute setup script once to verify dependency installation path works.
+
+## Signal Engine Step 3 Review
+- Added files:
+  - `backend/requirements.txt`
+  - `setup.sh`
+  - `start.sh`
+- Updated:
+  - `.gitignore` to allow checked-in `.env.example` templates.
+- Verification:
+  - `bash -n '/Users/joy/Opportunity Research/setup.sh' '/Users/joy/Opportunity Research/start.sh'` passed.
+  - `'/Users/joy/Opportunity Research/start.sh' --print-cron` printed valid 7:00 AM cron instructions.
+  - `'/Users/joy/Opportunity Research/setup.sh'` completed and installed backend + frontend dependencies.
+
+## Signal Engine Step 1 Revision Plan (India Memo + Apify Actor)
+- [x] Update Apify integration to use `apidojo/tweet-scraper` with required `twitterHandles` run input.
+- [x] Replace bullet-point synthesis behavior with long-form 3-4 paragraph memo output.
+- [x] Enforce India-specific framing in prompt (Indian fintech, RBI, enterprise AI, lending/compliance/automation).
+- [x] Update `.env.example` to reflect revised X handle defaults and remove deprecated actor env key.
+- [x] Re-run backend syntax verification.
+
+## Signal Engine Step 1 Revision Review
+- Updated files:
+  - `backend/signal_engine.py`
+  - `backend/.env.example`
+- Verification:
+  - `python3 -m py_compile '/Users/joy/Opportunity Research/backend/signal_engine.py'` passed.
+
+## Signal Engine Step 1 Revision (Provider Switch) Plan
+- [x] Replace Anthropic client usage with OpenAI client usage in backend synthesis flow.
+- [x] Update environment variables to `OPENAI_API_KEY` and `OPENAI_MODEL`.
+- [x] Update Python requirements to include `openai` instead of `anthropic`.
+- [x] Re-run backend syntax verification.
+
+## Signal Engine Step 1 Revision (Provider Switch) Review
+- Updated files:
+  - `backend/signal_engine.py`
+  - `backend/.env.example`
+  - `backend/requirements.txt`
+- Verification:
+  - `python3 -m py_compile '/Users/joy/Opportunity Research/backend/signal_engine.py'` passed.
+
+## Signal Engine Step 2 Revision Plan
+- [x] Validate `/frontend` still matches intent-driven omnibar architecture and Signal workspace routing.
+- [x] Improve long-form memo readability (line length, line-height, spacing) for markdown rendering.
+- [x] Ensure "Signal" query transitions directly into the Signal workspace.
+- [x] Keep refresh wiring (`/api/signal/refresh` -> `backend/signal_engine.py`) unchanged and verified.
+- [x] Run frontend production build verification.
+
+## Signal Engine Step 2 Revision Review
+- Updated files:
+  - `frontend/src/app/page.tsx`
+  - `frontend/src/app/globals.css`
+  - `frontend/src/app/api/signal/route.ts`
+- Verification:
+  - `cd '/Users/joy/Opportunity Research/frontend' && npm run build` passed (Next.js 14.2.35).
+
+## Signal Engine Step 3 Finalization Plan
+- [x] Align setup/start script messaging with OpenAI-based backend configuration.
+- [x] Keep start flow explicit for cron setup and local launch.
+- [x] Re-validate shell script syntax.
+
+## Signal Engine Step 3 Finalization Review
+- Updated files:
+  - `setup.sh`
+  - `start.sh`
+- Verification:
+  - `bash -n '/Users/joy/Opportunity Research/setup.sh' '/Users/joy/Opportunity Research/start.sh'` passed.
+
+## Signal Engine Step 4 Plan (Runtime Hardening)
+- [x] Ensure refresh API uses project virtualenv Python when available to avoid module mismatch.
+- [x] Improve refresh error details for quicker debugging.
+- [x] Add a lightweight local runtime checker script.
+
+## Signal Engine Step 4 Review
+- Updated files:
+  - `frontend/src/app/api/signal/refresh/route.ts`
+- Added files:
+  - `run_signal_once.sh`
+- Verification:
+  - `'/Users/joy/Opportunity Research/run_signal_once.sh' --check` passed.
+
+## Signal Engine Step 5 Plan (Operational Runbook)
+- [x] Add a single runbook documenting setup, run, refresh, and cron scheduling.
+- [x] Include explicit file paths and command snippets for local execution.
+- [x] Re-run frontend build as end-to-end UI/API sanity check.
+
+## Signal Engine Step 5 Review
+- Added files:
+  - `SIGNAL_ENGINE_RUNBOOK.md`
+- Verification:
+  - `cd '/Users/joy/Opportunity Research/frontend' && npm run build` passed (Next.js 14.2.35).
