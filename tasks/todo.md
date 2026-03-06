@@ -444,3 +444,18 @@
   - `SIGNAL_ENGINE_RUNBOOK.md`
 - Verification:
   - `cd '/Users/joy/Opportunity Research/frontend' && npm run build` passed (Next.js 14.2.35).
+
+## Signal Engine Source Expansion Plan (AI News)
+- [x] Add Code Newsletter AI feed as an additional signal ingestion source.
+- [x] Expose feed URL via env config for easy overrides.
+- [x] Update runbook docs and verify backend syntax.
+
+## Signal Engine Source Expansion Review (AI News)
+- Updated files:
+  - `backend/signal_engine.py`
+  - `backend/.env.example`
+  - `SIGNAL_ENGINE_RUNBOOK.md`
+- Runtime config updated:
+  - `backend/.env` now includes `AI_NEWS_FEED_URL=https://codenewsletter.ai/feed`.
+- Verification:
+  - `python3 -m py_compile '/Users/joy/Opportunity Research/backend/signal_engine.py'` passed.

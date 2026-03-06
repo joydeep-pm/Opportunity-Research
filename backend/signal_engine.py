@@ -13,10 +13,13 @@ import html
 import logging
 import os
 import re
+import ssl
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+import certifi
 import feedparser
 from apify_client import ApifyClient
 from dotenv import load_dotenv
@@ -62,6 +65,7 @@ def get_substack_feeds() -> dict[str, str]:
         "Lenny Rachitsky": os.getenv("SUBSTACK_FEED_LENNY", "https://www.lennysnewsletter.com/feed"),
         "John Cutler": os.getenv("SUBSTACK_FEED_JOHN", "https://cutlefish.substack.com/feed"),
         "Elena Verna": os.getenv("SUBSTACK_FEED_ELENA", "https://plgrowth.substack.com/feed"),
+        "Code Newsletter AI": os.getenv("AI_NEWS_FEED_URL", "https://codenewsletter.ai/feed"),
     }
 
 
@@ -70,7 +74,18 @@ def fetch_substack_content(cutoff_utc: datetime) -> list[str]:
     collected: list[tuple[datetime, str]] = []
 
     for author, feed_url in get_substack_feeds().items():
-        parsed = feedparser.parse(feed_url)
+        try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+            request = urllib.request.Request(
+                feed_url,
+                headers={"User-Agent": "Mozilla/5.0 (SignalEngine/1.0)"},
+            )
+            with urllib.request.urlopen(request, context=ssl_context, timeout=20) as response:
+                feed_bytes = response.read()
+            parsed = feedparser.parse(feed_bytes)
+        except Exception as exc:
+            logging.warning("Feed HTTPS fetch fallback for %s (%s): %s", author, feed_url, exc)
+            parsed = feedparser.parse(feed_url)
 
         if parsed.bozo:
             logging.warning("Feed parse warning for %s (%s): %s", author, feed_url, parsed.bozo_exception)

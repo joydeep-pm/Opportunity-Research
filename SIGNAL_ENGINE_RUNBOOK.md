@@ -51,3 +51,4 @@ Create `/Users/joy/Opportunity Research/backend/.env` from `.env.example` and se
 - `OPENAI_MODEL` (keep `gpt-4.1-mini` for lower cost)
 - `APIFY_API_TOKEN`
 - `SIGNAL_WINDOW_HOURS` (default `48`)
+- `AI_NEWS_FEED_URL` (default `https://codenewsletter.ai/feed`)
