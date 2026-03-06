@@ -589,29 +589,12 @@ function NarrativeText({ text }: { text: string }) {
   );
 }
 
-type LegacyWorkspaceProps = {
-  initialSkillId?: string | null;
-};
-
-export default function Home({ initialSkillId = null }: LegacyWorkspaceProps) {
-  const normalizedInitialSkillId = useMemo(
-    () => (initialSkillId && SKILLS.some((skill) => skill.id === initialSkillId) ? initialSkillId : null),
-    [initialSkillId],
-  );
-
+export default function Home() {
   const [query, setQuery] = useState("");
-  const [activeSkillId, setActiveSkillId] = useState<string | null>(normalizedInitialSkillId);
+  const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
   const [output, setOutput] = useState<SkillOutput | null>(null);
   const [omnibarFocused, setOmnibarFocused] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (normalizedInitialSkillId) {
-      setActiveSkillId(normalizedInitialSkillId);
-      return;
-    }
-    setActiveSkillId(null);
-  }, [normalizedInitialSkillId]);
 
   const activeSkill = useMemo(
     () => SKILLS.find((skill) => skill.id === activeSkillId) || null,
