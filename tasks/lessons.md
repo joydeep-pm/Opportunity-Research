@@ -48,3 +48,9 @@
 - Mistake pattern: Relying only on initial RSS/API setup without a configurable connector strategy.
 - Preventive rule: When freshness is a priority, implement pluggable connector routing (`SOURCE_MODE`) and expose connector credentials/settings via env.
 - Preventive rule: Keep a low-cost default mode and make higher-cost connectors opt-in.
+
+## 2026-03-06 - Isolate TypeScript scope in monorepo-like layouts
+- Trigger: Vercel root build failed because root `tsconfig.json` type-checked `frontend/` files and could not resolve `react-markdown` from root deps.
+- Mistake pattern: Broad include patterns (`**/*.ts`, `**/*.tsx`) in a repo containing multiple app trees.
+- Preventive rule: In root Next.js apps, scope TypeScript `include` to `src/**` and explicitly exclude sibling app directories.
+- Preventive rule: When adding a second app directory, immediately verify root build type-check boundaries.
