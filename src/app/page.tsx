@@ -4,10 +4,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
   BrainCircuit,
-  Clock3,
   Command,
+  GitBranch,
+  Loader2,
   Search,
+  ShieldCheck,
   Sparkles,
+  WandSparkles,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,12 +35,14 @@ type SkillConfig = {
   localScriptPath: string;
   runLabel: string;
   inputFields: SkillField[];
-  generateOutput: (values: Record<string, string>) => { title: string; body: string };
+  generateOutput: (
+    values: Record<string, string>,
+  ) => { title: string; body: string } | Promise<{ title: string; body: string }>;
 };
 
 type SkillWrapperProps = {
   skill: SkillConfig;
-  onRun: (payload: { title: string; body: string }) => void;
+  onRun: (payload: { title: string; body: string }) => void | Promise<void>;
   onClose: () => void;
 };
 
@@ -194,6 +199,53 @@ function generateLeadershipIdpMarkdown(values: Record<string, string>): string {
 
 const SKILLS: SkillConfig[] = [
   {
+    id: "signal",
+    name: "Signal Engine",
+    icon: Sparkles,
+    description: "Refreshes and loads the latest AI/PM strategic memo from connected sources.",
+    localScriptPath: "/Users/joy/Opportunity Research/backend/signal_engine.py",
+    runLabel: "Refresh and Load Latest Signal",
+    inputFields: [
+      {
+        id: "focus",
+        label: "Focus Lens",
+        type: "text",
+        defaultValue: "Indian fintech, RBI, enterprise AI, lending automation",
+      },
+    ],
+    generateOutput: async () => {
+      const fallback = async (reason: string) => {
+        try {
+          const latestRes = await fetch("/api/signal", { cache: "no-store" });
+          const latestJson = await latestRes.json();
+          return {
+            title: "Signal Engine Strategic Memo (Latest Available)",
+            body: `${latestJson?.markdown || "No memo found."}\n\n[refresh-note] ${reason}`,
+          };
+        } catch {
+          return {
+            title: "Signal Engine",
+            body: `Signal refresh failed and no cached memo could be loaded.\n\nReason: ${reason}`,
+          };
+        }
+      };
+
+      try {
+        const res = await fetch("/api/signal/refresh", { method: "POST" });
+        const json = await res.json();
+        if (!res.ok) {
+          return fallback(json?.details || json?.error || "Unknown refresh error");
+        }
+        return {
+          title: "Signal Engine Strategic Memo",
+          body: json?.markdown || "Signal refreshed but no memo text returned.",
+        };
+      } catch {
+        return fallback("Network error while calling /api/signal/refresh");
+      }
+    },
+  },
+  {
     id: "market",
     name: "Play Store Market Engine",
     icon: BarChart3,
@@ -302,33 +354,105 @@ const SKILLS: SkillConfig[] = [
     }),
   },
   {
-    id: "chronos",
-    name: "Chronos Timesheet",
-    icon: Clock3,
-    description: "Transforms raw work notes into a clean pulse export for tracking and reporting.",
-    localScriptPath: "/Users/joy/Portfolio Tracker",
-    runLabel: "Generate Pulse Export",
+    id: "validator",
+    name: "Idea Validator",
+    icon: ShieldCheck,
+    description: "Scores an idea on problem quality, market pull, differentiation, and execution risk.",
+    localScriptPath: "/Users/joy/Opportunity Research/skills/idea-validator/SKILL.md",
+    runLabel: "Run Validation",
     inputFields: [
-      { id: "notes", label: "Raw Notes", type: "textarea", placeholder: "Paste raw work notes...", defaultValue: "Mon: competitor scan + deck draft\nTue: user interviews + synthesis\nWed: PRD iteration + stakeholder review" },
-      { id: "week", label: "Week Label", type: "text", defaultValue: "2026-W10" },
+      { id: "idea", label: "Idea", type: "textarea", defaultValue: "AI-led compliance assistant for NBFC lending operations in India." },
+      { id: "target", label: "Target User", type: "text", defaultValue: "NBFC ops and risk teams" },
     ],
     generateOutput: (values) => ({
-      title: "Chronos Pulse Export",
+      title: "Idea Validator Snapshot",
       body: [
-        `Week: ${values.week}`,
+        `Idea: ${values.idea}`,
+        `Target: ${values.target}`,
         "",
-        "Normalized Entries:",
-        ...values.notes
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean)
-          .map((line, idx) => `${idx + 1}. ${line}`),
+        "Scores (0-10):",
+        "- Problem Intensity: 8",
+        "- Market Timing: 8",
+        "- Differentiation: 7",
+        "- Distribution Feasibility: 6",
+        "- Execution Risk: 6",
         "",
-        "Export (CSV-like):",
-        "date,theme,summary",
-        `2026-03-03,Research,"${(values.notes.split("\n")[0] || "Research work").replace(/"/g, "'")}"`,
-        `2026-03-04,Analysis,"${(values.notes.split("\n")[1] || "Analysis work").replace(/"/g, "'")}"`,
-        `2026-03-05,Execution,"${(values.notes.split("\n")[2] || "Execution work").replace(/"/g, "'")}"`,
+        "Verdict: ITERATE -> strong problem, improve distribution wedge and pricing proof.",
+      ].join("\n"),
+    }),
+  },
+  {
+    id: "workflow",
+    name: "Agent Workflow",
+    icon: GitBranch,
+    description: "Converts messy goals into a step-by-step agent execution blueprint.",
+    localScriptPath: "/Users/joy/Downloads/agent-workflow.skill",
+    runLabel: "Generate Workflow Blueprint",
+    inputFields: [
+      { id: "goal", label: "Goal", type: "text", defaultValue: "Generate weekly market and product intelligence brief" },
+      { id: "constraints", label: "Constraints", type: "textarea", defaultValue: "Budget <= $5/month, India-focused, verifiable sources only." },
+    ],
+    generateOutput: (values) => ({
+      title: "Agent Workflow Blueprint",
+      body: [
+        `Goal: ${values.goal}`,
+        `Constraints: ${values.constraints}`,
+        "",
+        "Execution Plan:",
+        "1. Ingest source signals",
+        "2. Normalize and deduplicate",
+        "3. Apply reliability scoring",
+        "4. Synthesize executive memo",
+        "5. Export and schedule automation",
+      ].join("\n"),
+    }),
+  },
+  {
+    id: "prompt",
+    name: "Prompt Engineering",
+    icon: WandSparkles,
+    description: "Refines rough prompts into production-grade instructions with evaluation hooks.",
+    localScriptPath: "/Users/joy/Downloads/prompt-engineering.skill",
+    runLabel: "Optimize Prompt",
+    inputFields: [
+      { id: "prompt", label: "Prompt Draft", type: "textarea", defaultValue: "Summarize PM news." },
+      { id: "failure", label: "Current Failure Mode", type: "text", defaultValue: "Too generic and lacks India context" },
+    ],
+    generateOutput: (values) => ({
+      title: "Prompt Optimization Result",
+      body: [
+        "Optimized Prompt:",
+        `You are a fintech and enterprise-AI strategy analyst for India. ${values.prompt}`,
+        "Always ground output in RBI compliance implications, lending execution, and measurable business impact. Use 3-4 concise paragraphs and avoid generic advice.",
+        "",
+        `Resolved Failure Mode: ${values.failure}`,
+      ].join("\n"),
+    }),
+  },
+  {
+    id: "product",
+    name: "Product Intelligence",
+    icon: BrainCircuit,
+    description: "Generates PRD-aligned strategic product recommendations from market signals.",
+    localScriptPath: "/Users/joy/Downloads/prd-writer.skill",
+    runLabel: "Generate Product Brief",
+    inputFields: [
+      { id: "problem", label: "Problem", type: "text", defaultValue: "Lending ops teams spend too much time on compliance checks" },
+      { id: "metric", label: "Primary Metric", type: "text", defaultValue: "Loan approval cycle time" },
+    ],
+    generateOutput: (values) => ({
+      title: "Product Intelligence Brief",
+      body: [
+        `Problem: ${values.problem}`,
+        `Primary Metric: ${values.metric}`,
+        "",
+        "Recommended Direction:",
+        "Build an AI co-pilot for compliance triage, policy interpretation, and audit-ready explanations.",
+        "",
+        "Expected Impact:",
+        "- 25-35% faster approval cycle",
+        "- Lower compliance review workload",
+        "- Better regulator-facing traceability",
       ].join("\n"),
     }),
   },
@@ -344,6 +468,7 @@ function SkillWrapper({ skill, onRun, onClose }: SkillWrapperProps) {
   );
 
   const [values, setValues] = useState<Record<string, string>>(defaults);
+  const [running, setRunning] = useState(false);
 
   useEffect(() => {
     setValues(defaults);
@@ -411,10 +536,19 @@ function SkillWrapper({ skill, onRun, onClose }: SkillWrapperProps) {
         </div>
 
         <button
-          onClick={() => onRun(skill.generateOutput(values))}
-          className="mt-5 inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+          onClick={async () => {
+            setRunning(true);
+            try {
+              const payload = await Promise.resolve(skill.generateOutput(values));
+              await onRun(payload);
+            } finally {
+              setRunning(false);
+            }
+          }}
+          disabled={running}
+          className="mt-5 inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          <Sparkles size={15} /> {skill.runLabel}
+          {running ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} {skill.runLabel}
         </button>
       </div>
     </div>
@@ -525,8 +659,27 @@ export default function Home() {
                       }
                     }}
                     className="w-full bg-transparent text-base text-zinc-900 outline-none placeholder:text-zinc-500"
-                    placeholder="Route intent to skill... (e.g., generate PRD, write linkedin post, timesheet export)"
+                    placeholder="Route intent to skill... (e.g., signal, play store, linkedin, idp, prompt)"
                   />
+                </div>
+
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">Quick Launch</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {SKILLS.map((skill) => {
+                      const Icon = skill.icon;
+                      return (
+                        <button
+                          key={`quick-${skill.id}`}
+                          onClick={() => setActiveSkillId(skill.id)}
+                          className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-sm text-zinc-700 transition hover:border-zinc-400 hover:bg-white"
+                        >
+                          <Icon size={16} className="text-zinc-600" />
+                          <span>{skill.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="mt-4 space-y-2">

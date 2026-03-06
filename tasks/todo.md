@@ -478,3 +478,19 @@
   - `python3 -m py_compile '/Users/joy/Opportunity Research/backend/signal_engine.py'` passed.
   - `'/Users/joy/Opportunity Research/run_signal_once.sh'` passed.
   - Observed expected runtime behavior with no Serper key: `SERPER_API_KEY not set. Skipping Serper connector.`
+
+## Omnibar UX Fix Plan (Signal + Cognitive Load)
+- [x] Remove unrequested Chronos skill from root omnibar module list.
+- [x] Add Signal Engine as a first-class root module so typing `signal` resolves.
+- [x] Add one-click Quick Launch buttons for all modules to avoid memorization/typing burden.
+- [x] Add root API endpoints for signal read/refresh so Signal module can execute live.
+- [x] Verify root build and deploy readiness.
+
+## Omnibar UX Fix Review (Signal + Cognitive Load)
+- Updated files:
+  - `src/app/page.tsx`
+- Added files:
+  - `src/app/api/signal/route.ts`
+  - `src/app/api/signal/refresh/route.ts`
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed.

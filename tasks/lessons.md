@@ -54,3 +54,9 @@
 - Mistake pattern: Broad include patterns (`**/*.ts`, `**/*.tsx`) in a repo containing multiple app trees.
 - Preventive rule: In root Next.js apps, scope TypeScript `include` to `src/**` and explicitly exclude sibling app directories.
 - Preventive rule: When adding a second app directory, immediately verify root build type-check boundaries.
+
+## 2026-03-06 - Avoid discoverability debt in omnibar UIs
+- Trigger: User reported high cognitive load and confusion (had to remember module names and type manually).
+- Mistake pattern: Over-indexing on command-palette purity and under-providing visible module entry points.
+- Preventive rule: Always include one-click quick-launch buttons/list for all modules in addition to search.
+- Preventive rule: Remove unrequested modules quickly when user calls them out and ensure requested modules are first-class entries.
