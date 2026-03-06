@@ -232,9 +232,12 @@ const SKILLS: SkillConfig[] = [
 
       try {
         const res = await fetch("/api/signal/refresh", { method: "POST" });
-        const json = await res.json();
+        const contentType = res.headers.get("content-type") || "";
+        const json = contentType.includes("application/json")
+          ? await res.json()
+          : { error: await res.text() };
         if (!res.ok) {
-          return fallback(json?.details || json?.error || "Unknown refresh error");
+          return fallback(json?.help || json?.details || json?.error || "Unknown refresh error");
         }
         return {
           title: "Signal Engine Strategic Memo",

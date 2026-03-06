@@ -60,3 +60,9 @@
 - Mistake pattern: Over-indexing on command-palette purity and under-providing visible module entry points.
 - Preventive rule: Always include one-click quick-launch buttons/list for all modules in addition to search.
 - Preventive rule: Remove unrequested modules quickly when user calls them out and ensure requested modules are first-class entries.
+
+## 2026-03-06 - Handle serverless process spawn failures explicitly
+- Trigger: Signal refresh on Vercel surfaced as vague \"Network error\" due unhandled spawn failure path.
+- Mistake pattern: Assuming local process execution semantics in serverless runtime and not handling `child_process` error events.
+- Preventive rule: Always wire `child.on('error')` and return structured JSON errors with actionable guidance.
+- Preventive rule: In client fetch handlers, guard non-JSON responses to avoid masking backend failures as generic network errors.

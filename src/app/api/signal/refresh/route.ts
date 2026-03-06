@@ -13,6 +13,15 @@ const pythonBin = existsSync(venvPythonPath) ? venvPythonPath : "python3";
 
 function runSignalScript() {
   return new Promise<{ code: number; stdout: string; stderr: string }>((resolve) => {
+    if (!existsSync(scriptPath)) {
+      resolve({
+        code: 1,
+        stdout: "",
+        stderr: `Signal script not found at ${scriptPath}`,
+      });
+      return;
+    }
+
     const child = spawn(pythonBin, [scriptPath], {
       cwd: repoRoot,
       env: process.env,
@@ -20,10 +29,24 @@ function runSignalScript() {
 
     let stdout = "";
     let stderr = "";
+    let settled = false;
+
+    const finalize = (payload: { code: number; stdout: string; stderr: string }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve(payload);
+    };
 
     const timeout = setTimeout(() => {
-      child.kill("SIGTERM");
-      stderr += "\nProcess timed out after 120 seconds.";
+      if (!child.killed) {
+        child.kill("SIGTERM");
+      }
+      finalize({
+        code: 1,
+        stdout,
+        stderr: `${stderr}\nProcess timed out after 120 seconds.`,
+      });
     }, 120_000);
 
     child.stdout.on("data", (chunk) => {
@@ -34,9 +57,16 @@ function runSignalScript() {
       stderr += chunk.toString();
     });
 
+    child.on("error", (err) => {
+      finalize({
+        code: 1,
+        stdout,
+        stderr: `${stderr}\nProcess spawn error: ${err.message}`,
+      });
+    });
+
     child.on("close", (code) => {
-      clearTimeout(timeout);
-      resolve({ code: code ?? 1, stdout, stderr });
+      finalize({ code: code ?? 1, stdout, stderr });
     });
   });
 }
@@ -45,13 +75,25 @@ export async function POST() {
   const result = await runSignalScript();
 
   if (result.code !== 0) {
+    const lowered = (result.stderr || "").toLowerCase();
+    const likelyServerlessRuntimeIssue =
+      lowered.includes("spawn") ||
+      lowered.includes("enoent") ||
+      lowered.includes("not found");
+
     return NextResponse.json(
       {
         ok: false,
         error: "signal_engine.py failed",
-        details: result.stderr || result.stdout || `Signal script failed using ${pythonBin}`,
+        details:
+          result.stderr ||
+          result.stdout ||
+          `Signal script failed using ${pythonBin}.`,
+        help: likelyServerlessRuntimeIssue
+          ? "Runtime could not execute local Python. On Vercel, either deploy a Node-only refresh path or generate daily_signal.md via external job/local runner."
+          : undefined,
       },
-      { status: 500 }
+      { status: likelyServerlessRuntimeIssue ? 503 : 500 }
     );
   }
 
