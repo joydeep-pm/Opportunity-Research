@@ -485,7 +485,7 @@ def main() -> None:
     setup_env()
     configure_logging()
 
-    window_hours = bounded_int("SIGNAL_WINDOW_HOURS", default=48, low=1, high=720)
+    window_hours = bounded_int("SIGNAL_WINDOW_HOURS", default=48, low=1, high=10000)
     cutoff_utc = datetime.now(timezone.utc) - timedelta(hours=window_hours)
     source_mode = get_source_mode()
 
