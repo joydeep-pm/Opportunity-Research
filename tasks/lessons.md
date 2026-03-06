@@ -72,3 +72,9 @@
 - Mistake pattern: Building API flows that require local scripts and writable repo files in serverless.
 - Preventive rule: Default cloud-facing refresh routes to pure Node/HTTP pipelines; treat local script execution as local-dev only.
 - Preventive rule: Add memory fallback for freshly generated outputs when persistent disk is unavailable.
+
+## 2026-03-06 - Optimize output readability, not just correctness
+- Trigger: User asked "how will I read" after seeing dense single-block memo text and requested separate windows.
+- Mistake pattern: Delivering technically correct output in an unreadable presentation.
+- Preventive rule: Narrative outputs must render with wrapped paragraph layout and visual grouping, never raw monospaced blocks.
+- Preventive rule: When users request separated thinking modes (e.g., Fintech/RBI vs Product), represent them as explicit, independently readable sections.

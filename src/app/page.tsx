@@ -27,6 +27,18 @@ type SkillField = {
   defaultValue?: string;
 };
 
+type SkillOutputSection = {
+  key?: string;
+  title: string;
+  body: string;
+};
+
+type SkillOutput = {
+  title: string;
+  body: string;
+  sections?: SkillOutputSection[];
+};
+
 type SkillConfig = {
   id: string;
   name: string;
@@ -37,12 +49,12 @@ type SkillConfig = {
   inputFields: SkillField[];
   generateOutput: (
     values: Record<string, string>,
-  ) => { title: string; body: string } | Promise<{ title: string; body: string }>;
+  ) => SkillOutput | Promise<SkillOutput>;
 };
 
 type SkillWrapperProps = {
   skill: SkillConfig;
-  onRun: (payload: { title: string; body: string }) => void | Promise<void>;
+  onRun: (payload: SkillOutput) => void | Promise<void>;
   onClose: () => void;
 };
 
@@ -202,9 +214,9 @@ const SKILLS: SkillConfig[] = [
     id: "signal",
     name: "Signal Engine",
     icon: Sparkles,
-    description: "Refreshes and loads the latest AI/PM strategic memo from connected sources.",
-    localScriptPath: "/Users/joy/Opportunity Research/backend/signal_engine.py",
-    runLabel: "Refresh and Load Latest Signal",
+    description: "Refreshes and loads split signal windows for Fintech/RBI and Product strategy.",
+    localScriptPath: "/api/signal/refresh (serverless)",
+    runLabel: "Refresh Signal Windows",
     inputFields: [
       {
         id: "focus",
@@ -219,8 +231,9 @@ const SKILLS: SkillConfig[] = [
           const latestRes = await fetch("/api/signal", { cache: "no-store" });
           const latestJson = await latestRes.json();
           return {
-            title: "Signal Engine Strategic Memo (Latest Available)",
+            title: "Signal Windows (Latest Available)",
             body: `${latestJson?.markdown || "No memo found."}\n\n[refresh-note] ${reason}`,
+            sections: Array.isArray(latestJson?.sections) ? latestJson.sections : undefined,
           };
         } catch {
           return {
@@ -240,8 +253,9 @@ const SKILLS: SkillConfig[] = [
           return fallback(json?.help || json?.details || json?.error || "Unknown refresh error");
         }
         return {
-          title: "Signal Engine Strategic Memo",
+          title: "Signal Engine Windows",
           body: json?.markdown || "Signal refreshed but no memo text returned.",
+          sections: Array.isArray(json?.sections) ? json.sections : undefined,
         };
       } catch {
         return fallback("Network error while calling /api/signal/refresh");
@@ -558,10 +572,27 @@ function SkillWrapper({ skill, onRun, onClose }: SkillWrapperProps) {
   );
 }
 
+function NarrativeText({ text }: { text: string }) {
+  const blocks = text
+    .split(/\n{2,}/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="space-y-4">
+      {blocks.map((block, index) => (
+        <p key={`${index}-${block.slice(0, 18)}`} className="whitespace-pre-wrap text-[15px] leading-7 text-zinc-800">
+          {block}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const [query, setQuery] = useState("");
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
-  const [output, setOutput] = useState<{ title: string; body: string } | null>(null);
+  const [output, setOutput] = useState<SkillOutput | null>(null);
   const [omnibarFocused, setOmnibarFocused] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -758,9 +789,24 @@ export default function Home() {
                   Close
                 </button>
               </div>
-              <pre className="max-h-[46vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-800">
-                {output.body}
-              </pre>
+              {Array.isArray(output.sections) && output.sections.length > 0 ? (
+                <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <div className={`grid gap-4 ${output.sections.length > 1 ? "md:grid-cols-2" : ""}`}>
+                    {output.sections.map((section, index) => (
+                      <article key={`${section.title}-${index}`} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                        <h4 className="text-base font-semibold text-zinc-900">{section.title}</h4>
+                        <div className="mt-3">
+                          <NarrativeText text={section.body} />
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <NarrativeText text={output.body} />
+                </div>
+              )}
             </motion.div>
           </>
         )}

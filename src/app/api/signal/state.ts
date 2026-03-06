@@ -1,6 +1,13 @@
+export type SignalSection = {
+  key: "fintech-rbi" | "product";
+  title: string;
+  body: string;
+};
+
 export type SignalSnapshot = {
   markdown: string;
   updatedAt: string;
+  sections?: SignalSection[];
   meta?: Record<string, unknown>;
 };
 

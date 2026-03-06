@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import { setLatestSignalSnapshot } from "../state";
+import { setLatestSignalSnapshot, type SignalSection } from "../state";
 
 export const runtime = "nodejs";
 
@@ -280,11 +280,60 @@ function normalizeModelOutput(content: string | ChatContentPart[] | undefined): 
   return text;
 }
 
-async function synthesizeMemo(payload: {
+function normalizeSectionBody(raw: string): string {
+  return raw.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function parseSignalSections(raw: string): SignalSection[] {
+  const fintechMatch = raw.match(/\[\[FINTECH_RBI\]\]([\s\S]*?)(\[\[PRODUCT\]\]|$)/i);
+  const productMatch = raw.match(/\[\[PRODUCT\]\]([\s\S]*)$/i);
+
+  if (fintechMatch?.[1] && productMatch?.[1]) {
+    return [
+      {
+        key: "fintech-rbi",
+        title: "Fintech / RBI Window",
+        body: normalizeSectionBody(fintechMatch[1]),
+      },
+      {
+        key: "product",
+        title: "Product Window",
+        body: normalizeSectionBody(productMatch[1]),
+      },
+    ];
+  }
+
+  const paragraphs = raw
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const mid = Math.max(1, Math.floor(paragraphs.length / 2));
+  const first = paragraphs.slice(0, mid).join("\n\n");
+  const second = paragraphs.slice(mid).join("\n\n");
+
+  return [
+    {
+      key: "fintech-rbi",
+      title: "Fintech / RBI Window",
+      body: normalizeSectionBody(first || raw),
+    },
+    {
+      key: "product",
+      title: "Product Window",
+      body: normalizeSectionBody(second || raw),
+    },
+  ];
+}
+
+function sectionsToMarkdown(sections: SignalSection[]): string {
+  return sections.map((section) => `## ${section.title}\n\n${section.body}`).join("\n\n");
+}
+
+async function synthesizeSignalSections(payload: {
   model: string;
   focusLens: string;
   context: string;
-}): Promise<string> {
+}): Promise<SignalSection[]> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not configured.");
@@ -292,17 +341,23 @@ async function synthesizeMemo(payload: {
 
   const systemPrompt = [
     "You are a Fintech and Enterprise AI Product Leader writing for an executive audience.",
-    "Produce a cohesive strategic memo in exactly 3 to 4 paragraphs.",
-    "Do not use bullet points, numbered lists, headings, markdown lists, or tables.",
-    "Every paragraph must connect global product leadership signals to Indian market execution, with explicit RBI/compliance implications where relevant.",
-    "Focus especially on lending scale, risk controls, compliance operations, and enterprise AI automation in India.",
+    "Produce two narrative windows in plain text for India-focused operators.",
+    "Do not use bullet points, numbered lists, markdown tables, or markdown headings.",
+    "Window 1 must focus on RBI/compliance/fintech implications.",
+    "Window 2 must focus on product strategy, execution priorities, and enterprise AI implementation.",
+    "Each window must be 2 paragraphs, concrete and actionable.",
     "Be concrete, opinionated, and practical. Avoid generic observations.",
   ].join(" ");
 
   const userPrompt = [
     `Focus lens: ${payload.focusLens}`,
     "Using the source digest below, synthesize a narrative memo for operators building in India.",
-    "Connect ideas into one storyline: what changed, why it matters now, and what operators should do next.",
+    "Return output strictly in this format:",
+    "[[FINTECH_RBI]]",
+    "<2 paragraphs on Indian fintech and RBI/compliance implications>",
+    "[[PRODUCT]]",
+    "<2 paragraphs on product strategy and execution implications>",
+    "No extra markers outside this format.",
     "Source digest:",
     payload.context,
   ].join("\n\n");
@@ -336,7 +391,7 @@ async function synthesizeMemo(payload: {
     throw new Error("OpenAI returned an empty synthesis response.");
   }
 
-  return content;
+  return parseSignalSections(content);
 }
 
 function jsonError(status: number, error: string, details: string, help?: string) {
@@ -408,7 +463,8 @@ export async function POST() {
     }
 
     const context = buildInputContext(items, startDate);
-    const markdown = await synthesizeMemo({ model, focusLens, context });
+    const sections = await synthesizeSignalSections({ model, focusLens, context });
+    const markdown = sectionsToMarkdown(sections);
     const updatedAt = new Date().toISOString();
 
     let filePersisted = false;
@@ -437,12 +493,14 @@ export async function POST() {
     setLatestSignalSnapshot({
       markdown,
       updatedAt,
+      sections,
       meta,
     });
 
     return NextResponse.json({
       ok: true,
       markdown,
+      sections,
       updatedAt,
       meta,
     });

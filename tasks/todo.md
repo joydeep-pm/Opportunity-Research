@@ -516,3 +516,22 @@
 - Git:
   - Commit: `cad2b39bfbdc98b7784fc328ada25f94ffada00c`
   - Pushed to: `origin/main`
+
+## Signal Readability + Split Windows Plan
+- [x] Refactor signal synthesis to produce two separated narrative windows: `Fintech/RBI` and `Product`.
+- [x] Return structured sections in both refresh and read APIs.
+- [x] Redesign output drawer rendering for readability (cards/paragraph layout instead of raw `<pre>` block).
+- [x] Verify with root production build and push.
+
+## Signal Readability + Split Windows Review
+- Updated files:
+  - `src/app/api/signal/refresh/route.ts`
+  - `src/app/api/signal/route.ts`
+  - `src/app/api/signal/state.ts`
+  - `src/app/page.tsx`
+- UX outcomes:
+  - Signal now renders as two explicit windows: **Fintech / RBI Window** and **Product Window**.
+  - Output drawer now uses readable narrative cards with wrapped paragraphs (no horizontal clipped text).
+  - Signal skill labeling now reflects serverless API execution path.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).
