@@ -535,3 +535,19 @@
   - Signal skill labeling now reflects serverless API execution path.
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).
+
+## Antigravity UI Revamp Sync Plan
+- [x] Fetch and verify whether `origin/main` has new commits to pull.
+- [x] Validate current local antigravity UI workspace build integrity.
+- [ ] Commit local UI revamp files and push to `origin/main`.
+
+## Antigravity UI Revamp Sync Review
+- Remote status:
+  - `git fetch origin && git rev-list --left-right --count main...origin/main` returned `0 0` (no remote commits pending pull).
+- Updated files to ship:
+  - `src/app/layout.tsx`
+  - `src/app/page.tsx`
+  - `src/components/SignalCard.tsx`
+  - `src/lib/legacy_page.tsx`
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed (Next.js 14.2.35).

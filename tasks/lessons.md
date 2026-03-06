@@ -78,3 +78,9 @@
 - Mistake pattern: Delivering technically correct output in an unreadable presentation.
 - Preventive rule: Narrative outputs must render with wrapped paragraph layout and visual grouping, never raw monospaced blocks.
 - Preventive rule: When users request separated thinking modes (e.g., Fintech/RBI vs Product), represent them as explicit, independently readable sections.
+
+## 2026-03-06 - Verify remote divergence before blocking on dirty worktree
+- Trigger: User clarified they had already revamped the UI and wanted pull/commit/push flow.
+- Mistake pattern: Pausing early on dirty local state before checking whether remote actually has new commits.
+- Preventive rule: First run `git fetch` + divergence check (`main...origin/main`) to verify if pull is needed; then proceed with the correct integration path.
+- Preventive rule: If remote is unchanged and local contains intended user edits, validate, commit, and push those edits directly.
