@@ -62,6 +62,7 @@ type SkillConfig = {
   description: string;
   localScriptPath: string;
   runLabel: string;
+  requiresInitialization?: boolean;
   inputFields: SkillField[];
   generateOutput: (
     values: Record<string, string>,
@@ -541,6 +542,7 @@ const SKILLS: SkillConfig[] = [
     description: "Generates PRD-aligned strategic product recommendations from market signals.",
     localScriptPath: "/Users/joy/Downloads/prd-writer.skill",
     runLabel: "Generate Product Brief",
+    requiresInitialization: true,
     inputFields: [
       { id: "problem", label: "Problem", type: "text", defaultValue: "Lending ops teams spend too much time on compliance checks" },
       { id: "metric", label: "Primary Metric", type: "text", defaultValue: "Loan approval cycle time" },
@@ -667,10 +669,21 @@ function SkillWrapper({ skill, onRun, onClose, seedValues, contextHint, onClearC
 
   const [values, setValues] = useState<Record<string, string>>(defaults);
   const [running, setRunning] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [stackPreference, setStackPreference] = useState("Kotlin + Compose");
+  const [initializedAt, setInitializedAt] = useState<string | null>(null);
+  const isInitializationRequired = Boolean(skill.requiresInitialization);
+  const isInitialized = !isInitializationRequired || Boolean(initializedAt);
 
   useEffect(() => {
     setValues(defaults);
   }, [defaults]);
+
+  useEffect(() => {
+    setProjectName("");
+    setStackPreference("Kotlin + Compose");
+    setInitializedAt(null);
+  }, [skill.id]);
 
   const Icon = skill.icon;
 
@@ -709,6 +722,52 @@ function SkillWrapper({ skill, onRun, onClose, seedValues, contextHint, onClearC
           <Icon size={18} />
           <p className="font-medium">Execution Inputs</p>
         </div>
+        {isInitializationRequired && (
+          <div className="mb-5 rounded-2xl border border-zinc-300 bg-zinc-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Step 1: Initialize Project</p>
+            <p className="mt-1 text-sm text-zinc-700">PRD generation is locked until project initialization is completed.</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-600">Project Name</label>
+                <input
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="e.g., FinFlow AI"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-500"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-600">Stack Preference</label>
+                <select
+                  value={stackPreference}
+                  onChange={(e) => setStackPreference(e.target.value)}
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-500"
+                >
+                  <option value="Kotlin + Compose">Kotlin + Compose</option>
+                  <option value="Flutter">Flutter</option>
+                  <option value="React Native">React Native</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                onClick={() => {
+                  if (!projectName.trim()) return;
+                  setInitializedAt(new Date().toISOString());
+                }}
+                disabled={!projectName.trim()}
+                className="inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Initialize Project
+              </button>
+              {initializedAt && (
+                <p className="text-xs text-green-700">
+                  Initialized {projectName.trim()} with {stackPreference}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
         <div className="space-y-4">
           {skill.inputFields.map((field) => (
             <div key={field.id} className="space-y-1.5">
@@ -750,17 +809,27 @@ function SkillWrapper({ skill, onRun, onClose, seedValues, contextHint, onClearC
           onClick={async () => {
             setRunning(true);
             try {
-              const payload = await Promise.resolve(skill.generateOutput(values));
+              const payload = await Promise.resolve(
+                skill.generateOutput({
+                  ...values,
+                  __projectName: projectName.trim(),
+                  __stackPreference: stackPreference,
+                  __initializedAt: initializedAt || "",
+                }),
+              );
               await onRun(payload);
             } finally {
               setRunning(false);
             }
           }}
-          disabled={running}
+          disabled={running || !isInitialized}
           className="mt-5 inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {running ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} {skill.runLabel}
         </button>
+        {!isInitialized && (
+          <p className="mt-2 text-xs text-zinc-500">Complete initialization to unlock PRD generation.</p>
+        )}
       </div>
     </div>
   );

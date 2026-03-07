@@ -681,3 +681,19 @@
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` passed.
   - `cd '/Users/joy/Opportunity Research' && npm run test:e2e` passed (`15 passed`).
+
+## PRD Gating Milestone Kickoff Plan (2026-03-07)
+- [x] Add explicit initialization gate for Product Intelligence (PRD path).
+- [x] Disable PRD generation action until project initialization is completed.
+- [x] Preserve existing routing and output behavior for all non-PRD skills.
+- [x] Re-run build and full Playwright suite.
+
+## PRD Gating Milestone Kickoff Review (2026-03-07)
+- Updated files:
+  - `src/lib/legacy_page.tsx`
+- Behavior update:
+  - Product Intelligence now requires `Initialize Project` (project name + stack preference) before `Generate Product Brief` is enabled.
+  - UI shows locked/unlocked state and initialization confirmation inline.
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed.
+  - `cd '/Users/joy/Opportunity Research' && npm run test:e2e` passed (`15 passed`).
