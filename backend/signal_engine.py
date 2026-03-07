@@ -592,33 +592,42 @@ def synthesize_with_openai(content_blocks: Iterable[str]) -> str:
 
     system_prompt = (
         "You are a strategic analyst curating a daily newsletter for an Indian fintech/AI product leader. "
-        "Extract 3-5 KEY SIGNALS from the source material and format each as a distinct newsletter item. "
-        "Each signal should have: (1) catchy title, (2) source attribution, (3) exactly 2 concise paragraphs. "
-        "Filter everything through Indian fintech, RBI regulations, lending automation, and enterprise AI applications. "
-        "Focus on actionable insights, not generic trends."
+        "Extract EXACTLY 5 signals: 2 from PM leaders (Lenny Rachitsky, Shreyas Doshi, John Cutler, Elena Verna, Aakash Gupta), "
+        "2 from AI/ML sources, and 1 from RBI/regulatory sources. "
+        "Each signal must have: (1) catchy title, (2) source attribution with author name, (3) topic tags, (4) exactly 2 concise paragraphs. "
+        "Prioritize PM leader insights over generic news. Focus on actionable insights, not generic trends."
     )
 
     user_prompt = (
-        "Extract 3-5 key signals from the content below and format as a newsletter.\n\n"
-        "FORMAT (use this exact structure):\n"
+        "Extract EXACTLY 5 signals following this distribution:\n"
+        "- 2 from PM Leaders (Lenny Rachitsky, Shreyas Doshi, John Cutler, Elena Verna, Aakash Gupta)\n"
+        "- 2 from AI/ML sources\n"
+        "- 1 from RBI/regulatory sources\n\n"
+        "FORMAT (use this EXACT structure for each signal):\n"
         "---\n"
         "## 🎯 [Catchy Signal Title]\n"
-        "**Source:** [Author Name] | [Publication/Platform]\n\n"
+        "**Source:** [Author Name] | [Publication/Platform]\n"
+        "**Topics:** #Topic1 #Topic2 #Topic3\n\n"
         "[Paragraph 1: What's the core insight or development?]\n\n"
         "[Paragraph 2: Why does this matter for Indian fintech/AI product leaders? What's the action?]\n"
         "---\n\n"
+        "TOPIC TAG RULES:\n"
+        "- PM signals: Use tags like #ProductManagement #Strategy #Execution #Growth #GTM #Teams\n"
+        "- AI signals: Use tags like #AI #MachineLearning #LLM #Automation #Enterprise\n"
+        "- RBI signals: Use tags like #RBI #Compliance #Regulatory #NBFC\n\n"
         "HARD CONSTRAINTS:\n"
-        "- 3-5 signals maximum\n"
-        "- Each signal: title, source, exactly 2 paragraphs\n"
-        "- India fintech + RBI + enterprise AI lens throughout\n"
-        "- Make titles specific and compelling\n\n"
+        "- EXACTLY 5 signals: 2 PM + 2 AI + 1 RBI\n"
+        "- Each signal: title, source (with AUTHOR NAME), topics, exactly 2 paragraphs\n"
+        "- Prioritize content from PM leaders (Lenny, Shreyas, John Cutler, Elena Verna, Aakash Gupta)\n"
+        "- For PM signals, the Source MUST include the author's name (e.g., 'Lenny Rachitsky | Newsletter')\n"
+        "- India fintech + RBI lens throughout\n\n"
         f"SOURCE CONTENT:\n{payload}"
     )
 
     client = OpenAI(api_key=api_key)
     response = client.responses.create(
         model=model,
-        max_output_tokens=1200,
+        max_output_tokens=2000,  # Increased for 5 signals with topics
         temperature=0.2,
         input=[
             {"role": "system", "content": system_prompt},
