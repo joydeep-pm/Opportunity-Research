@@ -634,3 +634,50 @@
     - `/?tool=play-store` -> generated Opportunity Snapshot output.
     - `/?tool=idp` -> generated Strategic IDP output.
     - `/?tool=workflow` -> Agent Workflow workspace loaded with execution inputs.
+
+## Functional QA Sweep Plan (2026-03-07)
+- [x] Validate shell/navigation discoverability (sidebar + command bar + quick transitions).
+- [x] Validate each tool route loads correct workspace (`signal`, `vault`, `play-store`, `competitor`, `validator`, `linkedin`, `prompt`, `product`, `prd`, `idp`, `workflow`, `pulse`).
+- [x] Validate primary CTA in each workspace triggers output/update behavior.
+- [x] Validate output drawer interactions (open/close/escape, overlay behavior, non-blocking navigation).
+- [x] Validate `/api/signal` and `/api/signal/refresh` responses and fallback behavior.
+- [x] Capture defects with repro steps and severity.
+
+## Functional QA Sweep Review (2026-03-07)
+- Runtime:
+  - `cd '/Users/joy/Opportunity Research' && npm run dev -- --port 4022`
+- E2E automation:
+  - `node '/Users/joy/Opportunity Research/.tmp-qa-functional.js'`
+  - Result: `PASS_COUNT 39`, `FAIL_COUNT 0`
+  - Coverage:
+    - all 12 tool routes load expected workspace,
+    - primary CTA in each route opens output drawer,
+    - output drawer closes via `Escape`,
+    - command bar route intent works (`product` -> `linkedin`),
+    - sidebar navigation works (`linkedin` -> `idp`),
+    - output drawer closes via `Close` button.
+- API checks:
+  - `GET /api/signal` -> `200 OK` with keys: `markdown, sections, exists, updatedAt, source`.
+  - `POST /api/signal/refresh` -> `500` with structured error payload when key is missing:
+    - `error: Missing OPENAI_API_KEY`
+    - fallback path still works in UI (Signal output renders via cached/latest `/api/signal` response).
+- Findings:
+  - No functional regressions found in routed skill flows and CTA interactions.
+  - Configuration dependency remains for live signal regeneration: `OPENAI_API_KEY` must be set in environment for `/api/signal/refresh` success.
+
+## Cross-Skill Context Milestone Continuation Plan (2026-03-07)
+- [x] Fix context runtime safety for SSR/dev server (`sessionStorage` guard).
+- [x] Resolve `legacy_page` hook ordering/dependency issue causing build/type errors.
+- [x] Restore discoverability cues expected by current UI/e2e contract (`Quick Launch`, command bar input/button).
+- [x] Re-run production build and full Playwright suite.
+
+## Cross-Skill Context Milestone Continuation Review (2026-03-07)
+- Updated files:
+  - `src/lib/legacy_page.tsx`
+  - `src/lib/skillContext.ts`
+  - `src/app/layout.tsx`
+  - `src/components/Dashboard.tsx`
+  - `src/components/SignalHistory.tsx`
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed.
+  - `cd '/Users/joy/Opportunity Research' && npm run test:e2e` passed (`15 passed`).

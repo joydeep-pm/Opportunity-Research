@@ -15,6 +15,19 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
+import SignalNewsletter from "@/components/SignalNewsletter";
+import OutputActionBar from "@/components/OutputActionBar";
+import { saveSignalToHistory } from "./signalHistory";
+import { saveToHistory } from "./outputHistory";
+import {
+  clearContext,
+  canChain,
+  getCompatibleSkills,
+  getContext,
+  getContextHint,
+  setContext,
+  type SkillContext,
+} from "./skillContext";
 
 type SkillFieldType = "text" | "textarea" | "select";
 
@@ -28,15 +41,18 @@ type SkillField = {
 };
 
 type SkillOutputSection = {
-  key?: string;
+  key: string;
   title: string;
   body: string;
+  source?: string;
+  id?: string;
 };
 
 type SkillOutput = {
   title: string;
   body: string;
   sections?: SkillOutputSection[];
+  updatedAt?: string;
 };
 
 type SkillConfig = {
@@ -56,6 +72,9 @@ type SkillWrapperProps = {
   skill: SkillConfig;
   onRun: (payload: SkillOutput) => void | Promise<void>;
   onClose: () => void;
+  seedValues?: Record<string, string> | null;
+  contextHint?: string | null;
+  onClearContext?: () => void;
 };
 
 type LegacyHomeProps = {
@@ -239,6 +258,7 @@ const SKILLS: SkillConfig[] = [
             title: "Signal Windows (Latest Available)",
             body: `${latestJson?.markdown || "No memo found."}\n\n[refresh-note] ${reason}`,
             sections: Array.isArray(latestJson?.sections) ? latestJson.sections : undefined,
+            updatedAt: latestJson?.updatedAt || new Date().toISOString(),
           };
         } catch {
           return {
@@ -257,11 +277,22 @@ const SKILLS: SkillConfig[] = [
         if (!res.ok) {
           return fallback(json?.help || json?.details || json?.error || "Unknown refresh error");
         }
-        return {
+        const output = {
           title: "Signal Engine Windows",
           body: json?.markdown || "Signal refreshed but no memo text returned.",
           sections: Array.isArray(json?.sections) ? json.sections : undefined,
+          updatedAt: json?.updatedAt || new Date().toISOString(),
         };
+
+        // Save to history
+        saveSignalToHistory({
+          title: output.title,
+          markdown: output.body,
+          sections: output.sections,
+          updatedAt: output.updatedAt,
+        });
+
+        return output;
       } catch {
         return fallback("Network error while calling /api/signal/refresh");
       }
@@ -279,22 +310,31 @@ const SKILLS: SkillConfig[] = [
       { id: "query", label: "Niche Query", type: "text", placeholder: "AI habit tracker for India", defaultValue: "AI habit tracker for India" },
       { id: "country", label: "Market", type: "text", defaultValue: "India" },
     ],
-    generateOutput: (values) => ({
-      title: "Play Store Opportunity Snapshot",
-      body: [
-        `Category: ${values.category}`,
-        `Niche: ${values.query}`,
-        `Market: ${values.country}`,
-        "",
-        "Top Signals:",
-        "1. Competitors have strong installs but repeated UX complaints in onboarding and personalization.",
-        "2. Mid-install apps indicate proven demand with room for better product execution.",
-        "3. India-first positioning + localized behavior loops is a strong wedge.",
-        "",
-        "Recommended Next Move:",
-        "Build a constrained MVP around one habit loop, one retention mechanic, and one monetization path.",
-      ].join("\n"),
-    }),
+    generateOutput: async (values) => {
+      try {
+        const res = await fetch("/api/skills/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skillId: "market", inputs: values }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.details || "Failed to generate market analysis");
+        }
+
+        const data = await res.json();
+        return {
+          title: "Play Store Market Analysis",
+          body: data.output || "No analysis generated",
+        };
+      } catch (error) {
+        return {
+          title: "Play Store Market Analysis",
+          body: `Error: ${error instanceof Error ? error.message : "Unknown error"}\n\nPlease ensure OPENAI_API_KEY is set in .env file.`,
+        };
+      }
+    },
   },
   {
     id: "content",
@@ -308,48 +348,30 @@ const SKILLS: SkillConfig[] = [
       { id: "funnel", label: "Funnel Mode", type: "select", options: ["ToF", "MoF", "BoF"], defaultValue: "ToF" },
       { id: "cta", label: "CTA Goal", type: "text", defaultValue: "Drive comments and profile follows" },
     ],
-    generateOutput: (values) => {
-      const seed = (values.idea || "").trim() || "AI teams move faster when they design skill systems, not random prompts.";
-      const firstSentence = seed.split(/[.!?]/)[0] || seed;
-      const ctaLine =
-        values.funnel === "BoF"
-          ? `If you want the full framework, comment "template" and I will send it.`
-          : "What part of this workflow would you challenge first?";
+    generateOutput: async (values) => {
+      try {
+        const res = await fetch("/api/skills/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skillId: "content", inputs: values }),
+        });
 
-      return {
-        title: "LinkedIn Viral Post Package",
-        body: [
-          "Hook Options:",
-          `1. If I had to learn this again, I'd start here: ${firstSentence}`,
-          `2. Everyone says post more. They're wrong. ${firstSentence}`,
-          `3. I tested this for 30 days and the result surprised me: ${firstSentence}`,
-          "",
-          "Final Post:",
-          `${firstSentence}`,
-          "",
-          "Most creators focus on output volume.",
-          "The leverage is in system quality.",
-          "",
-          "In the last month I observed 3 patterns:",
-          "1) Teams with purpose-built skills produce clearer output.",
-          "2) Teams with strict quality checks improve faster.",
-          "3) Teams that track outcomes (not activity) compound faster.",
-          "",
-          "The future is not one person doing everything.",
-          "The future is one operator orchestrating specialized capabilities.",
-          "",
-          ctaLine,
-          "",
-          "#LinkedInGrowth #AIBuilders #ProductStrategy #ContentEngine",
-          "",
-          "Checklist:",
-          "- Keep first 3 lines curiosity-heavy.",
-          "- Ensure at least one concrete number or specific detail.",
-          "- One CTA only.",
-          `- Funnel Mode: ${values.funnel}`,
-          `- CTA Goal: ${values.cta}`,
-        ].join("\n"),
-      };
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.details || "Failed to generate LinkedIn post");
+        }
+
+        const data = await res.json();
+        return {
+          title: "LinkedIn Viral Post Package",
+          body: data.output || "No post generated",
+        };
+      } catch (error) {
+        return {
+          title: "LinkedIn Viral Post Package",
+          body: `Error: ${error instanceof Error ? error.message : "Unknown error"}\n\nPlease ensure OPENAI_API_KEY is set in .env file.`,
+        };
+      }
     },
   },
   {
@@ -370,10 +392,36 @@ const SKILLS: SkillConfig[] = [
           "Strong ownership on product execution and cross-functional follow-through.\nNeeds sharper prioritization when multiple asks arrive simultaneously.\nTrusted by design and engineering partners for clear updates.\nDelivery cadence slipped twice this month due to unclear sequencing.\nShows initiative in mentoring junior PMs and documenting decisions.",
       },
     ],
-    generateOutput: (values) => ({
-      title: "Strategic IDP & 1:1 Synthesis",
-      body: generateLeadershipIdpMarkdown(values),
-    }),
+    generateOutput: async (values) => {
+      // Try AI-enhanced version first, fallback to deterministic logic
+      try {
+        const res = await fetch("/api/skills/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skillId: "idp", inputs: values }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          return {
+            title: "Strategic IDP & 1:1 Synthesis (AI-Enhanced)",
+            body: data.output || generateLeadershipIdpMarkdown(values),
+          };
+        }
+
+        // Fallback to deterministic logic if API fails
+        return {
+          title: "Strategic IDP & 1:1 Synthesis",
+          body: generateLeadershipIdpMarkdown(values),
+        };
+      } catch {
+        // Fallback to deterministic logic
+        return {
+          title: "Strategic IDP & 1:1 Synthesis",
+          body: generateLeadershipIdpMarkdown(values),
+        };
+      }
+    },
   },
   {
     id: "validator",
@@ -386,22 +434,31 @@ const SKILLS: SkillConfig[] = [
       { id: "idea", label: "Idea", type: "textarea", defaultValue: "AI-led compliance assistant for NBFC lending operations in India." },
       { id: "target", label: "Target User", type: "text", defaultValue: "NBFC ops and risk teams" },
     ],
-    generateOutput: (values) => ({
-      title: "Idea Validator Snapshot",
-      body: [
-        `Idea: ${values.idea}`,
-        `Target: ${values.target}`,
-        "",
-        "Scores (0-10):",
-        "- Problem Intensity: 8",
-        "- Market Timing: 8",
-        "- Differentiation: 7",
-        "- Distribution Feasibility: 6",
-        "- Execution Risk: 6",
-        "",
-        "Verdict: ITERATE -> strong problem, improve distribution wedge and pricing proof.",
-      ].join("\n"),
-    }),
+    generateOutput: async (values) => {
+      try {
+        const res = await fetch("/api/skills/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skillId: "validator", inputs: values }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.details || "Failed to validate idea");
+        }
+
+        const data = await res.json();
+        return {
+          title: "Idea Validation Report",
+          body: data.output || "No validation generated",
+        };
+      } catch (error) {
+        return {
+          title: "Idea Validation Report",
+          body: `Error: ${error instanceof Error ? error.message : "Unknown error"}\n\nPlease ensure OPENAI_API_KEY is set in .env file.`,
+        };
+      }
+    },
   },
   {
     id: "workflow",
@@ -414,20 +471,31 @@ const SKILLS: SkillConfig[] = [
       { id: "goal", label: "Goal", type: "text", defaultValue: "Generate weekly market and product intelligence brief" },
       { id: "constraints", label: "Constraints", type: "textarea", defaultValue: "Budget <= $5/month, India-focused, verifiable sources only." },
     ],
-    generateOutput: (values) => ({
-      title: "Agent Workflow Blueprint",
-      body: [
-        `Goal: ${values.goal}`,
-        `Constraints: ${values.constraints}`,
-        "",
-        "Execution Plan:",
-        "1. Ingest source signals",
-        "2. Normalize and deduplicate",
-        "3. Apply reliability scoring",
-        "4. Synthesize executive memo",
-        "5. Export and schedule automation",
-      ].join("\n"),
-    }),
+    generateOutput: async (values) => {
+      try {
+        const res = await fetch("/api/skills/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skillId: "workflow", inputs: values }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.details || "Failed to generate workflow");
+        }
+
+        const data = await res.json();
+        return {
+          title: "Agent Workflow Blueprint",
+          body: data.output || "No workflow generated",
+        };
+      } catch (error) {
+        return {
+          title: "Agent Workflow Blueprint",
+          body: `Error: ${error instanceof Error ? error.message : "Unknown error"}\n\nPlease ensure OPENAI_API_KEY is set in .env file.`,
+        };
+      }
+    },
   },
   {
     id: "prompt",
@@ -440,16 +508,31 @@ const SKILLS: SkillConfig[] = [
       { id: "prompt", label: "Prompt Draft", type: "textarea", defaultValue: "Summarize PM news." },
       { id: "failure", label: "Current Failure Mode", type: "text", defaultValue: "Too generic and lacks India context" },
     ],
-    generateOutput: (values) => ({
-      title: "Prompt Optimization Result",
-      body: [
-        "Optimized Prompt:",
-        `You are a fintech and enterprise-AI strategy analyst for India. ${values.prompt}`,
-        "Always ground output in RBI compliance implications, lending execution, and measurable business impact. Use 3-4 concise paragraphs and avoid generic advice.",
-        "",
-        `Resolved Failure Mode: ${values.failure}`,
-      ].join("\n"),
-    }),
+    generateOutput: async (values) => {
+      try {
+        const res = await fetch("/api/skills/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skillId: "prompt", inputs: values }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.details || "Failed to optimize prompt");
+        }
+
+        const data = await res.json();
+        return {
+          title: "Prompt Optimization Result",
+          body: data.output || "No optimization generated",
+        };
+      } catch (error) {
+        return {
+          title: "Prompt Optimization Result",
+          body: `Error: ${error instanceof Error ? error.message : "Unknown error"}\n\nPlease ensure OPENAI_API_KEY is set in .env file.`,
+        };
+      }
+    },
   },
   {
     id: "product",
@@ -462,32 +545,125 @@ const SKILLS: SkillConfig[] = [
       { id: "problem", label: "Problem", type: "text", defaultValue: "Lending ops teams spend too much time on compliance checks" },
       { id: "metric", label: "Primary Metric", type: "text", defaultValue: "Loan approval cycle time" },
     ],
-    generateOutput: (values) => ({
-      title: "Product Intelligence Brief",
-      body: [
-        `Problem: ${values.problem}`,
-        `Primary Metric: ${values.metric}`,
-        "",
-        "Recommended Direction:",
-        "Build an AI co-pilot for compliance triage, policy interpretation, and audit-ready explanations.",
-        "",
-        "Expected Impact:",
-        "- 25-35% faster approval cycle",
-        "- Lower compliance review workload",
-        "- Better regulator-facing traceability",
-      ].join("\n"),
-    }),
+    generateOutput: async (values) => {
+      try {
+        const res = await fetch("/api/skills/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skillId: "product", inputs: values }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.details || "Failed to generate product brief");
+        }
+
+        const data = await res.json();
+        return {
+          title: "Product Intelligence Brief",
+          body: data.output || "No brief generated",
+        };
+      } catch (error) {
+        return {
+          title: "Product Intelligence Brief",
+          body: `Error: ${error instanceof Error ? error.message : "Unknown error"}\n\nPlease ensure OPENAI_API_KEY is set in .env file.`,
+        };
+      }
+    },
   },
 ];
 
-function SkillWrapper({ skill, onRun, onClose }: SkillWrapperProps) {
-  const defaults = useMemo(
-    () =>
-      Object.fromEntries(
-        skill.inputFields.map((field) => [field.id, field.defaultValue || ""]),
-      ) as Record<string, string>,
-    [skill],
-  );
+const SKILL_LABELS: Record<string, string> = {
+  signal: "Signal Engine",
+  market: "Play Store Market Engine",
+  content: "LinkedIn Content Engine",
+  validator: "Idea Validator",
+  prompt: "Prompt Engineering",
+  product: "Product Intelligence",
+  prd: "PRD Generator",
+  workflow: "Agent Workflow",
+  idp: "Leadership IDP Engine",
+};
+
+function trimContextBody(context: SkillContext | null): string {
+  if (!context) return "";
+  return [context.outputTitle, context.outputBody].filter(Boolean).join("\n\n").slice(0, 1300).trim();
+}
+
+function buildSeedInputs(skillId: string, context: SkillContext | null): Record<string, string> | null {
+  if (!context) return null;
+
+  const contextText = trimContextBody(context);
+  if (!contextText) return null;
+
+  switch (skillId) {
+    case "content":
+      return { idea: contextText };
+    case "validator":
+      return {
+        idea: contextText,
+        target: context.sourceSkillLabel,
+      };
+    case "product":
+      return {
+        problem: contextText,
+        metric: "Time-to-decision and execution velocity",
+      };
+    case "prompt":
+      return {
+        prompt: contextText,
+        failure: "Needs sharper India-first framing and output structure",
+      };
+    case "idp":
+      return {
+        notes: `${contextText}\n\nSource: ${context.sourceSkillLabel}`,
+      };
+    case "workflow":
+      return {
+        goal: contextText,
+        constraints: `Use ${context.sourceSkillLabel} output as primary context`,
+      };
+    case "market":
+      return {
+        query: context.outputTitle || contextText.slice(0, 140),
+      };
+    case "signal":
+      return {
+        focus: `${context.sourceSkillLabel}: ${contextText.slice(0, 180)}`,
+      };
+    default:
+      return null;
+  }
+}
+
+function resolveChainTargets(sourceSkillId?: string) {
+  if (!sourceSkillId) return [];
+  const uniqueById = new Map<string, { id: string; label: string; description: string }>();
+
+  for (const rawId of getCompatibleSkills(sourceSkillId)) {
+    if (rawId === sourceSkillId) continue;
+    if (uniqueById.has(rawId)) continue;
+
+    uniqueById.set(rawId, {
+      id: rawId,
+      label: SKILL_LABELS[rawId] || rawId,
+      description: getContextHint(sourceSkillId, rawId),
+    });
+  }
+
+  return Array.from(uniqueById.values());
+}
+
+function SkillWrapper({ skill, onRun, onClose, seedValues, contextHint, onClearContext }: SkillWrapperProps) {
+  const defaults = useMemo(() => {
+    const base = Object.fromEntries(
+      skill.inputFields.map((field) => [field.id, field.defaultValue || ""]),
+    ) as Record<string, string>;
+
+    if (!seedValues) return base;
+
+    return { ...base, ...seedValues };
+  }, [skill, seedValues]);
 
   const [values, setValues] = useState<Record<string, string>>(defaults);
   const [running, setRunning] = useState(false);
@@ -506,6 +682,11 @@ function SkillWrapper({ skill, onRun, onClose }: SkillWrapperProps) {
           <h2 className="mt-1 text-2xl font-semibold text-zinc-900">{skill.name}</h2>
           <p className="mt-2 text-sm text-zinc-600">{skill.description}</p>
           <p className="mt-2 text-xs text-zinc-500">Local Script Path: <span className="font-mono">{skill.localScriptPath}</span></p>
+          {contextHint && (
+            <p className="mt-3 text-xs leading-5 text-zinc-700">
+              <span className="font-semibold">Context:</span> {contextHint}
+            </p>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -513,6 +694,14 @@ function SkillWrapper({ skill, onRun, onClose }: SkillWrapperProps) {
         >
           <X size={14} /> Close
         </button>
+        {contextHint && onClearContext && (
+          <button
+            onClick={onClearContext}
+            className="ml-2 inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-xs text-zinc-600 transition hover:bg-zinc-200"
+          >
+            Clear Context
+          </button>
+        )}
       </div>
 
       <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -603,8 +792,75 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
   const [query, setQuery] = useState("");
   const [activeSkillId, setActiveSkillId] = useState<string | null>(normalizedInitialSkillId);
   const [output, setOutput] = useState<SkillOutput | null>(null);
+  const [outputId, setOutputId] = useState<string | null>(null);
+  const [skillContext, setSkillContext] = useState<SkillContext | null>(() => getContext());
+  const [seedValues, setSeedValues] = useState<Record<string, string> | null>(null);
+  const [activeContextHint, setActiveContextHint] = useState<string | null>(null);
   const [omnibarFocused, setOmnibarFocused] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const activeSkill = useMemo(
+    () => SKILLS.find((skill) => skill.id === activeSkillId) || null,
+    [activeSkillId],
+  );
+
+  const handleOutputGenerated = (payload: SkillOutput) => {
+    setOutput(payload);
+
+    // Save to history
+    if (activeSkill) {
+      const outputContext: SkillContext = {
+        sourceSkillId: activeSkill.id,
+        sourceSkillLabel: activeSkill.name,
+        outputTitle: payload.title,
+        outputBody: payload.body.slice(0, 1400),
+        timestamp: new Date().toISOString(),
+      };
+
+      setContext(outputContext);
+      setSkillContext(outputContext);
+
+      const id = saveToHistory({
+        title: payload.title,
+        skillId: activeSkill.id,
+        skillLabel: activeSkill.name,
+        body: payload.body,
+      });
+      setOutputId(id);
+    }
+  };
+
+  const chainTargets = useMemo(
+    () => resolveChainTargets(activeSkill?.id),
+    [activeSkill?.id],
+  );
+
+  const compatibleSeedTargets = useMemo(() => {
+    const source = skillContext?.sourceSkillId;
+    if (!source) return new Set<string>();
+    return new Set(getCompatibleSkills(source).map((id) => (id === "prd" ? "product" : id)));
+  }, [skillContext]);
+
+  const handleChain = (targetSkillId: string) => {
+    const normalizedTarget = targetSkillId === "prd" ? "product" : targetSkillId;
+    setActiveSkillId(normalizedTarget);
+    setOutput(null);
+    setOutputId(null);
+    setOmnibarFocused(true);
+    setQuery("");
+    setActiveContextHint(
+      skillContext ? getContextHint(skillContext.sourceSkillId, targetSkillId) : null,
+    );
+    setSeedValues(buildSeedInputs(normalizedTarget, skillContext));
+    window.setTimeout(() => inputRef.current?.blur(), 10);
+  };
+
+  const clearSkillContext = () => {
+    clearContext();
+    setSkillContext(null);
+    setSeedValues(null);
+    setActiveContextHint(null);
+  };
 
   useEffect(() => {
     if (normalizedInitialSkillId) {
@@ -616,10 +872,26 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
     setActiveSkillId(null);
   }, [normalizedInitialSkillId]);
 
-  const activeSkill = useMemo(
-    () => SKILLS.find((skill) => skill.id === activeSkillId) || null,
-    [activeSkillId],
-  );
+  useEffect(() => {
+    const context = getContext();
+    setSkillContext(context);
+    const sourceSkillId = context?.sourceSkillId;
+
+    if (!activeSkill || !context || !sourceSkillId) {
+      setSeedValues(null);
+      setActiveContextHint(null);
+      return;
+    }
+
+    if (canChain(sourceSkillId, activeSkill.id)) {
+      setSeedValues(buildSeedInputs(activeSkill.id, context));
+      setActiveContextHint(getContextHint(sourceSkillId, activeSkill.id));
+    } else {
+      setSeedValues(null);
+      setActiveContextHint(null);
+    }
+  }, [activeSkill]);
+
 
   const filteredSkills = useMemo(() => {
     if (!query.trim()) return SKILLS;
@@ -692,20 +964,31 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
                   placeholder="Route intent to skill... (e.g., signal, play store, linkedin, idp, prompt)"
                 />
               </div>
+              {skillContext && (
+                <p className="mt-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-700">
+                  Context from <span className="font-semibold">{skillContext.sourceSkillLabel}</span>: resume from available chain when supported.
+                </p>
+              )}
 
               <div className="mt-4">
                 <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">Quick Launch</p>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {SKILLS.map((skill) => {
-                    const Icon = skill.icon;
-                    return (
-                      <button
-                        key={`quick-${skill.id}`}
-                        onClick={() => setActiveSkillId(skill.id)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-sm text-zinc-700 transition hover:border-zinc-400 hover:bg-white"
-                      >
-                        <Icon size={16} className="text-zinc-600" />
-                        <span>{skill.name}</span>
+                    {SKILLS.map((skill) => {
+                      const Icon = skill.icon;
+                      const isSuggested = compatibleSeedTargets.has(skill.id);
+                      return (
+                        <button
+                          key={`quick-${skill.id}`}
+                          onClick={() => setActiveSkillId(skill.id)}
+                          className="inline-flex w-full items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-sm text-zinc-700 transition hover:border-zinc-400 hover:bg-white"
+                        >
+                        <span className="flex items-center gap-2">
+                          <Icon size={16} className="text-zinc-600" />
+                          <span>{skill.name}</span>
+                        </span>
+                        {isSuggested && (
+                          <span className="text-[10px] uppercase tracking-wide text-violet-600">Chain</span>
+                        )}
                       </button>
                     );
                   })}
@@ -751,7 +1034,10 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
               <SkillWrapper
                 skill={activeSkill}
                 onClose={() => setActiveSkillId(null)}
-                onRun={(payload) => setOutput(payload)}
+                onRun={handleOutputGenerated}
+                seedValues={seedValues}
+                contextHint={activeContextHint}
+                onClearContext={skillContext ? clearSkillContext : undefined}
               />
             </motion.div>
           )}
@@ -784,23 +1070,23 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
                   </button>
                 </div>
                 {Array.isArray(output.sections) && output.sections.length > 0 ? (
-                  <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                    <div className={`grid gap-4 ${output.sections.length > 1 ? "md:grid-cols-2" : ""}`}>
-                      {output.sections.map((section, index) => (
-                        <article key={`${section.title}-${index}`} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                          <h4 className="text-base font-semibold text-zinc-900">{section.title}</h4>
-                          <div className="mt-3">
-                            <NarrativeText text={section.body} />
-                          </div>
-                        </article>
-                      ))}
-                    </div>
+                  <div className="max-h-[70vh] overflow-auto">
+                    <SignalNewsletter signals={output.sections} updatedAt={output.updatedAt} />
                   </div>
                 ) : (
                   <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                     <NarrativeText text={output.body} />
                   </div>
                 )}
+
+                <OutputActionBar
+                  outputId={outputId}
+                  title={output.title}
+                  body={output.body}
+                  sourceSkillId={activeSkill?.id}
+                  compatibleSkills={chainTargets}
+                  onChain={handleChain}
+                />
               </motion.div>
             </>
           )}
@@ -866,26 +1152,37 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
                     }}
                     className="w-full bg-transparent text-base text-zinc-900 outline-none placeholder:text-zinc-500"
                     placeholder="Route intent to skill... (e.g., signal, play store, linkedin, idp, prompt)"
-                  />
-                </div>
+                />
+              </div>
+              {skillContext && (
+                <p className="mt-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-700">
+                  Context from <span className="font-semibold">{skillContext.sourceSkillLabel}</span>: resume from available chain when supported.
+                </p>
+              )}
 
-                <div className="mt-4">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">Quick Launch</p>
-                  <div className="grid gap-2 sm:grid-cols-2">
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">Quick Launch</p>
+                <div className="grid gap-2 sm:grid-cols-2">
                     {SKILLS.map((skill) => {
                       const Icon = skill.icon;
+                      const isSuggested = compatibleSeedTargets.has(skill.id);
                       return (
                         <button
                           key={`quick-${skill.id}`}
                           onClick={() => setActiveSkillId(skill.id)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-sm text-zinc-700 transition hover:border-zinc-400 hover:bg-white"
+                          className="inline-flex w-full items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-sm text-zinc-700 transition hover:border-zinc-400 hover:bg-white"
                         >
+                        <span className="flex items-center gap-2">
                           <Icon size={16} className="text-zinc-600" />
                           <span>{skill.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                        </span>
+                        {isSuggested && (
+                          <span className="text-[10px] uppercase tracking-wide text-violet-600">Chain</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
                 </div>
 
                 <div className="mt-4 space-y-2">
@@ -927,7 +1224,10 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
                 <SkillWrapper
                   skill={activeSkill}
                   onClose={() => setActiveSkillId(null)}
-                  onRun={(payload) => setOutput(payload)}
+                  onRun={handleOutputGenerated}
+                  seedValues={seedValues}
+                  contextHint={activeContextHint}
+                  onClearContext={skillContext ? clearSkillContext : undefined}
                 />
               </motion.div>
             )}
@@ -962,23 +1262,23 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
                 </button>
               </div>
               {Array.isArray(output.sections) && output.sections.length > 0 ? (
-                <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <div className={`grid gap-4 ${output.sections.length > 1 ? "md:grid-cols-2" : ""}`}>
-                    {output.sections.map((section, index) => (
-                      <article key={`${section.title}-${index}`} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                        <h4 className="text-base font-semibold text-zinc-900">{section.title}</h4>
-                        <div className="mt-3">
-                          <NarrativeText text={section.body} />
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                <div className="max-h-[70vh] overflow-auto">
+                  <SignalNewsletter signals={output.sections} updatedAt={output.updatedAt} />
                 </div>
               ) : (
                 <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                   <NarrativeText text={output.body} />
                 </div>
               )}
+
+              <OutputActionBar
+                outputId={outputId}
+                title={output.title}
+                body={output.body}
+                sourceSkillId={activeSkill?.id}
+                compatibleSkills={chainTargets}
+                onChain={handleChain}
+              />
             </motion.div>
           </>
         )}

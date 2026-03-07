@@ -23,5 +23,12 @@ __pycache__/
 # project outputs
 outputs/
 
+# test artifacts
+test-results/
+playwright-report/
+playwright/.auth/
+
 # misc
 .DS_Store
+
+/src/generated/prisma

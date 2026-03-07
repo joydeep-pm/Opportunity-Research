@@ -2,9 +2,16 @@
 
 import localFont from "next/font/local";
 import "./globals.css";
-import { FormEvent, Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import SignalHistory from "@/components/SignalHistory";
+import WorkspacePanel from "@/components/WorkspacePanel";
+import Tooltip from "@/components/Tooltip";
+import CommandPalette from "@/components/CommandPalette";
+import KeyboardShortcuts from "@/components/KeyboardShortcuts";
+import WelcomeTour from "@/components/WelcomeTour";
+import { Search as SearchIcon, SearchX } from "lucide-react";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -19,85 +26,185 @@ const geistMono = localFont({
 
 const NAV_GROUPS = [
   {
+    title: "",
+    items: [
+      { id: "", label: "Dashboard", icon: "🏠" },
+    ],
+  },
+  {
     title: "Knowledge",
     items: [
-      { id: "signal", label: "Daily Signal" },
-      { id: "vault", label: "Saved Vault" },
+      { id: "signal", label: "Daily Signal", icon: "⏰", meta: "AI" },
+      { id: "vault", label: "Saved Vault", icon: "💾" },
     ],
   },
   {
     title: "Market",
     items: [
-      { id: "play-store", label: "Play Store Research" },
-      { id: "competitor", label: "Competitor Tracking" },
-      { id: "validator", label: "Idea Validator" },
+      { id: "play-store", label: "Play Store Research", icon: "🤖", meta: "AI" },
+      { id: "competitor", label: "Competitor Tracking", icon: "🤖", meta: "AI" },
+      { id: "validator", label: "Idea Validator", icon: "⚡", meta: "AI" },
     ],
   },
   {
     title: "Content",
     items: [
-      { id: "linkedin", label: "LinkedIn Writer" },
-      { id: "prompt", label: "Prompt Engineering" },
+      { id: "linkedin", label: "LinkedIn Writer", icon: "🤖", meta: "AI" },
+      { id: "prompt", label: "Prompt Engineering", icon: "⚡", meta: "AI" },
     ],
   },
   {
     title: "Management",
     items: [
-      { id: "product", label: "Product Intelligence" },
-      { id: "prd", label: "PRD Generator" },
-      { id: "idp", label: "1:1 IDP Builder" },
-      { id: "workflow", label: "Agent Workflow" },
-      { id: "pulse", label: "Pulse Timesheets" },
+      { id: "product", label: "Product Intelligence", icon: "🤖", meta: "AI" },
+      { id: "prd", label: "PRD Generator", icon: "🤖", meta: "AI" },
+      { id: "idp", label: "1:1 IDP Builder", icon: "🤖", meta: "AI" },
+      { id: "workflow", label: "Agent Workflow", icon: "⚡", meta: "AI" },
+      { id: "pulse", label: "Pulse Timesheets", icon: "📊" },
     ],
   },
 ];
 
-const TOOL_LABELS: Record<string, string> = NAV_GROUPS.flatMap((group) => group.items).reduce(
-  (acc, item) => {
-    acc[item.id] = item.label;
-    return acc;
-  },
-  {} as Record<string, string>,
-);
-
-function resolveToolIntent(query: string, fallback: string): string {
-  const q = query.trim().toLowerCase();
-  if (!q) return fallback;
-
-  if (q.includes("signal") || q.includes("daily") || q.includes("feed")) return "signal";
-  if (q.includes("vault") || q.includes("saved")) return "vault";
-  if (q.includes("play") || q.includes("market")) return "play-store";
-  if (q.includes("competitor") || q.includes("track")) return "competitor";
-  if (q.includes("validator") || q.includes("idea")) return "validator";
-  if (q.includes("linkedin") || q.includes("post") || q.includes("content")) return "linkedin";
-  if (q.includes("prompt")) return "prompt";
-  if (q.includes("prd")) return "prd";
-  if (q.includes("idp") || q.includes("1:1")) return "idp";
-  if (q.includes("workflow") || q.includes("agent")) return "workflow";
-  if (q.includes("pulse") || q.includes("timesheet")) return "pulse";
-  if (q.includes("product")) return "product";
-
-  return fallback;
+function getTooltipContent(itemId: string): string {
+  const tooltips: Record<string, string> = {
+    "": "Overview of all activity",
+    "signal": "AI-powered • Runs daily • ~90s",
+    "vault": "Storage • Saved signals",
+    "play-store": "AI-powered • ~30-60s • India market",
+    "competitor": "AI-powered • ~30-60s • Competitive analysis",
+    "validator": "AI-powered • Fast <5s • Score ideas",
+    "linkedin": "AI-powered • Fast <5s • Viral posts",
+    "prompt": "AI-powered • Fast <5s • Optimize prompts",
+    "product": "AI-powered • ~10-15s • Product strategy",
+    "prd": "AI-powered • ~10-15s • PRD specs",
+    "idp": "AI-powered • ~10s • Leadership plans",
+    "workflow": "AI-powered • ~10s • Agent blueprints",
+    "pulse": "Manual entry • Timesheets",
+  };
+  return tooltips[itemId] || "Run this skill";
 }
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const currentTool = searchParams.get("tool") || "signal";
   const isReadingExperience = currentTool === "signal" || currentTool === "vault";
-  const [commandQuery, setCommandQuery] = useState("");
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [commandValue, setCommandValue] = useState("");
+  const router = useRouter();
 
-  const commandHint = useMemo(() => {
-    if (!commandQuery.trim()) return "Type and press Enter";
-    return `Open: ${TOOL_LABELS[resolveToolIntent(commandQuery, currentTool)] || "Current Tool"}`;
-  }, [commandQuery, currentTool]);
+  const commandTargets = [
+    { id: "", label: "dashboard", queryHints: ["dashboard", "home"] },
+    { id: "signal", label: "signal", queryHints: ["signal", "daily signal"] },
+    { id: "vault", label: "vault", queryHints: ["vault"] },
+    { id: "play-store", label: "play store", queryHints: ["play", "play store", "play-store", "market"] },
+    { id: "competitor", label: "competitor", queryHints: ["competitor", "tracking"] },
+    { id: "validator", label: "validator", queryHints: ["validator", "idea validator"] },
+    { id: "linkedin", label: "linkedin", queryHints: ["linkedin", "content", "post"] },
+    { id: "prompt", label: "prompt", queryHints: ["prompt", "prompt engineering"] },
+    { id: "product", label: "product", queryHints: ["product", "prd writer", "product intelligence"] },
+    { id: "prd", label: "prd", queryHints: ["prd", "prd generator"] },
+    { id: "idp", label: "idp", queryHints: ["idp", "1:1", "leadership"] },
+    { id: "workflow", label: "workflow", queryHints: ["workflow", "agent workflow"] },
+    { id: "pulse", label: "pulse", queryHints: ["pulse", "timesheet"] },
+  ] as const;
 
-  const runCommand = (event: FormEvent) => {
-    event.preventDefault();
-    const nextTool = resolveToolIntent(commandQuery, currentTool);
-    router.push(`/?tool=${nextTool}`);
-    setCommandQuery("");
+  const resolveCommandTarget = (raw: string): string | null => {
+    const normalized = raw.trim().toLowerCase();
+    if (!normalized) return null;
+
+    const exactIdMatch = commandTargets.find((target) => target.id === normalized);
+    if (exactIdMatch) return exactIdMatch.id;
+
+    const exactLabelMatch = commandTargets.find((target) =>
+      target.queryHints.some((hint) => hint.toLowerCase() === normalized),
+    );
+    if (exactLabelMatch) return exactLabelMatch.id;
+
+    const startsWithMatch = commandTargets.find((target) =>
+      target.queryHints.some((hint) => normalized.startsWith(hint.toLowerCase())),
+    );
+    if (startsWithMatch) return startsWithMatch.id;
+
+    return null;
   };
+
+  const executeCommand = (event?: React.FormEvent) => {
+    event?.preventDefault();
+    const target = resolveCommandTarget(commandValue);
+    if (!target) {
+      setCommandPaletteOpen(true);
+      return;
+    }
+    router.push(target ? `/?tool=${target}` : "/");
+    setCommandValue("");
+    setCommandPaletteOpen(false);
+  };
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Escape: Close modals
+      if (event.key === "Escape") {
+        setCommandPaletteOpen(false);
+        setShortcutsOpen(false);
+        return;
+      }
+
+      // Cmd+K: Open command palette
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen(true);
+        return;
+      }
+
+      // Don't handle other shortcuts if typing in input
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      // ?: Show keyboard shortcuts help
+      if (event.key === "?") {
+        event.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
+
+      // Cmd+H: Dashboard
+      if ((event.metaKey || event.ctrlKey) && event.key === "h") {
+        event.preventDefault();
+        window.location.href = "/";
+        return;
+      }
+
+      // Cmd+1-9: Navigate to skills
+      if ((event.metaKey || event.ctrlKey) && /^[1-9]$/.test(event.key)) {
+        event.preventDefault();
+        const skillMap: Record<string, string> = {
+          "1": "signal",
+          "2": "vault",
+          "3": "play-store",
+          "4": "competitor",
+          "5": "validator",
+          "6": "linkedin",
+          "7": "prompt",
+          "8": "product",
+          "9": "prd",
+        };
+        const skillId = skillMap[event.key];
+        if (skillId) {
+          window.location.href = `/?tool=${skillId}`;
+        }
+        return;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <div className="flex h-full w-full">
@@ -107,21 +214,33 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
           {NAV_GROUPS.map((group) => (
-            <div key={group.title} className="flex flex-col gap-1">
-              <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">{group.title}</div>
+            <div key={group.title || "home"} className="flex flex-col gap-1">
+              {group.title && (
+                <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                  {group.title}
+                </div>
+              )}
               {group.items.map((item) => {
                 const isActive = currentTool === item.id;
                 return (
                   <Link
-                    key={item.id}
-                    href={`/?tool=${item.id}`}
-                    className={`rounded border px-2 py-1.5 text-left text-sm font-medium transition-colors ${
+                    key={item.id || "dashboard"}
+                    href={item.id ? `/?tool=${item.id}` : "/"}
+                    className={`flex items-center gap-2 rounded border px-2 py-1.5 text-left text-sm font-medium transition-colors ${
                       isActive
                         ? "border-zinc-200/50 bg-zinc-100 text-zinc-900 shadow-sm"
                         : "border-transparent text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                     }`}
                   >
-                    {item.label}
+                    {item.icon && (
+                      <Tooltip content={getTooltipContent(item.id)}>
+                        <span className="text-base leading-none">{item.icon}</span>
+                      </Tooltip>
+                    )}
+                    <span className="flex-1">{item.label}</span>
+                    {item.meta && (
+                      <span className="text-[10px] text-zinc-400">{item.meta}</span>
+                    )}
                   </Link>
                 );
               })}
@@ -133,7 +252,39 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <main className="relative z-0 flex min-w-0 flex-1 flex-col bg-zinc-50">
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center border-b border-zinc-200 bg-white/95 px-6 shadow-sm backdrop-blur">
           <form
-            onSubmit={runCommand}
+            onSubmit={executeCommand}
+            className="relative mr-3 flex flex-1 items-center gap-2 rounded border border-zinc-200 bg-zinc-50 px-3 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] transition-all hover:border-zinc-300 hover:bg-white"
+          >
+            <SearchIcon size={14} className="shrink-0 text-zinc-400" />
+            <input
+              aria-label="Command search"
+              value={commandValue}
+              onChange={(e) => setCommandValue(e.target.value)}
+              onFocus={() => setCommandPaletteOpen(true)}
+              onBlur={() => setCommandPaletteOpen(false)}
+              placeholder="Type a module (e.g., signal, play-store, linkedin)"
+              className="w-full bg-transparent text-[13px] font-medium text-zinc-700 outline-none placeholder:text-zinc-400"
+            />
+            <button
+              type="submit"
+              onMouseDown={(event) => event.preventDefault()}
+              className="rounded border border-zinc-300 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100"
+              name="Go"
+              aria-label="Go"
+            >
+              Go
+            </button>
+            <button
+              type="button"
+              aria-label="Clear command input"
+              onClick={() => setCommandValue("")}
+              className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+            >
+              <SearchX size={13} />
+            </button>
+          </form>
+          <button
+            onClick={() => setCommandPaletteOpen(true)}
             className="flex max-w-xl flex-1 items-center gap-2 rounded border border-zinc-200 bg-zinc-50 px-3 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] transition-all hover:border-zinc-300 hover:bg-white"
           >
             <svg
@@ -150,21 +301,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <input
-              value={commandQuery}
-              onChange={(event) => setCommandQuery(event.target.value)}
-              className="w-full bg-transparent text-[13px] font-medium text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search signals or execute command (Cmd + K)"
-              aria-label="Command search"
-            />
-            <button
-              type="submit"
-              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 transition hover:bg-zinc-100"
-            >
-              Go
-            </button>
-          </form>
-          <div className="ml-3 text-[11px] font-medium text-zinc-500">{commandHint}</div>
+            <span className="w-full text-left text-[13px] font-medium text-zinc-400">
+              Open launcher...
+            </span>
+            <kbd className="ml-auto rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-500">
+              ⌘K
+            </kbd>
+          </button>
         </header>
 
         <div className="relative w-full flex-1 overflow-y-auto">
@@ -172,51 +315,25 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      {isReadingExperience ? (
-        <aside className="z-20 flex w-[280px] shrink-0 flex-col border-l border-zinc-200 bg-white shadow-[-1px_0_2px_rgba(0,0,0,0.02)]">
-          <div className="flex h-14 shrink-0 items-center border-b border-zinc-200 px-4">
-            <h2 className="text-sm font-bold tracking-tight text-zinc-900">The Vault</h2>
-          </div>
-          <div className="flex flex-1 flex-col gap-3 overflow-y-auto bg-zinc-50/50 p-4">
-            <div className="cursor-pointer overflow-hidden rounded border border-zinc-200 border-l-[3px] border-l-blue-500 bg-white shadow-sm transition-shadow hover:shadow">
-              <div className="p-3">
-                <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-zinc-400">AI</div>
-                <h3 className="break-words text-xs font-semibold leading-snug text-zinc-800">
-                  New Transformer Architecture for Edge Devices
-                </h3>
-              </div>
-            </div>
-            <div className="cursor-pointer overflow-hidden rounded border border-zinc-200 border-l-[3px] border-l-green-500 bg-white shadow-sm transition-shadow hover:shadow">
-              <div className="p-3">
-                <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-zinc-400">Fintech</div>
-                <h3 className="break-words text-xs font-semibold leading-snug text-zinc-800">
-                  RBI Guidelines on Digital Lending App Audits
-                </h3>
-              </div>
-            </div>
-          </div>
-        </aside>
-      ) : (
-        <aside className="z-20 flex w-[280px] shrink-0 flex-col items-center justify-center border-l border-zinc-200 bg-zinc-50 p-6 text-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-sm">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-zinc-400"
-            >
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-            </svg>
-          </div>
-          <h3 className="mb-1 text-sm font-bold text-zinc-800">Contextual Tools</h3>
-          <p className="text-xs font-medium text-zinc-500">Filters and metadata for &quot;{currentTool}&quot; will appear here.</p>
-        </aside>
-      )}
+      <aside className="z-20 flex w-[280px] shrink-0 flex-col border-l border-zinc-200 bg-white shadow-[-1px_0_2px_rgba(0,0,0,0.02)]">
+        <div className="flex h-14 shrink-0 items-center border-b border-zinc-200 px-4">
+          <h2 className="text-sm font-bold tracking-tight text-zinc-900">
+            {isReadingExperience ? "Signal History" : "Workspace"}
+          </h2>
+        </div>
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {isReadingExperience ? <SignalHistory /> : <WorkspacePanel />}
+        </div>
+      </aside>
+
+      {/* Command Palette */}
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcuts open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
+      {/* Welcome Tour */}
+      <WelcomeTour />
     </div>
   );
 }

@@ -9,35 +9,44 @@ const repoRoot = process.cwd();
 const signalPath = path.join(repoRoot, "daily_signal.md");
 
 function parseSectionsFromMarkdown(markdown: string): SignalSection[] {
-  const headingRegex = /^##\s+(.+)\s*$/gm;
-  const headings: Array<{ title: string; start: number; end: number }> = [];
-  let match: RegExpExecArray | null;
-  while ((match = headingRegex.exec(markdown)) !== null) {
-    headings.push({ title: match[1].trim(), start: match.index, end: headingRegex.lastIndex });
-  }
+  // Parse newsletter format: signals separated by "---"
+  const signals = markdown.split(/\n?---\n?/).filter(s => s.trim());
 
-  if (!headings.length) {
+  if (!signals.length || signals.length === 1) {
+    // Fallback to old paragraph format
     return [
       {
         key: "fintech-rbi",
-        title: "Fintech / RBI Window",
+        title: "Daily Signal",
         body: markdown.trim(),
       },
     ];
   }
 
-  return headings.map((heading, index) => {
-    const bodyStart = heading.end;
-    const bodyEnd = index + 1 < headings.length ? headings[index + 1].start : markdown.length;
-    const rawBody = markdown.slice(bodyStart, bodyEnd).trim();
-    const lowerTitle = heading.title.toLowerCase();
-    const key: "fintech-rbi" | "product" =
-      lowerTitle.includes("fintech") || lowerTitle.includes("rbi") ? "fintech-rbi" : "product";
+  return signals.map((signal, index) => {
+    const trimmedSignal = signal.trim();
+
+    // Extract title (## heading)
+    const titleMatch = trimmedSignal.match(/^##\s+(.+)$/m);
+    const title = titleMatch ? titleMatch[1].trim() : `Signal ${index + 1}`;
+
+    // Extract source (**Source:** ...)
+    const sourceMatch = trimmedSignal.match(/\*\*Source:\*\*\s+(.+)$/m);
+    const source = sourceMatch ? sourceMatch[1].trim() : "";
+
+    // Get body (everything after source line)
+    const bodyStart = sourceMatch ? trimmedSignal.indexOf(sourceMatch[0]) + sourceMatch[0].length : 0;
+    const body = trimmedSignal.slice(bodyStart).trim();
+
+    // Generate unique ID for bookmarking
+    const id = `signal-${Date.now()}-${index}`;
 
     return {
-      key,
-      title: heading.title,
-      body: rawBody,
+      key: `signal-${index}`,
+      title,
+      body,
+      source,
+      id,
     };
   });
 }

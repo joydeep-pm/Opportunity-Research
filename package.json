@@ -6,17 +6,27 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:e2e": "npx playwright test",
+    "test:e2e:p0": "npx playwright test --grep \"\\[P0\\]\""
   },
   "dependencies": {
+    "@prisma/client": "^7.4.2",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "framer-motion": "^12.35.0",
     "lucide-react": "^0.577.0",
     "next": "14.2.35",
+    "openai": "^6.27.0",
+    "prisma": "^7.4.2",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-joyride": "^2.9.3"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.3.0",
+    "@playwright/test": "^1.58.2",
+    "@seontechnologies/playwright-utils": "^3.14.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

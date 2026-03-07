@@ -441,21 +441,27 @@ def synthesize_with_openai(content_blocks: Iterable[str]) -> str:
         payload = "No source content collected in the configured window."
 
     system_prompt = (
-        "You are a Fintech/AI Product Leader writing a strategic memo for an Indian leadership team. "
-        "Synthesize the source material into a cohesive long-form narrative briefing in Markdown. "
-        "Return exactly 3 to 4 paragraphs. "
-        "Do not use bullet points, numbered lists, headings, or section labels. "
-        "Build one storyline that connects product strategy, growth leverage, and execution implications. "
-        "Filter all analysis through Indian fintech realities, RBI regulatory context, and enterprise AI applications. "
-        "Explicitly connect ideas to scaling lending products, compliance management, and AI automation in India."
+        "You are a strategic analyst curating a daily newsletter for an Indian fintech/AI product leader. "
+        "Extract 3-5 KEY SIGNALS from the source material and format each as a distinct newsletter item. "
+        "Each signal should have: (1) catchy title, (2) source attribution, (3) exactly 2 concise paragraphs. "
+        "Filter everything through Indian fintech, RBI regulations, lending automation, and enterprise AI applications. "
+        "Focus on actionable insights, not generic trends."
     )
 
     user_prompt = (
-        "Create today's strategic signal memo from the source content below.\n"
-        "Hard constraints:\n"
-        "- 3 to 4 paragraphs only\n"
-        "- No bullets or numbered lists\n"
-        "- India fintech + RBI + enterprise AI lens throughout\n\n"
+        "Extract 3-5 key signals from the content below and format as a newsletter.\n\n"
+        "FORMAT (use this exact structure):\n"
+        "---\n"
+        "## 🎯 [Catchy Signal Title]\n"
+        "**Source:** [Author Name] | [Publication/Platform]\n\n"
+        "[Paragraph 1: What's the core insight or development?]\n\n"
+        "[Paragraph 2: Why does this matter for Indian fintech/AI product leaders? What's the action?]\n"
+        "---\n\n"
+        "HARD CONSTRAINTS:\n"
+        "- 3-5 signals maximum\n"
+        "- Each signal: title, source, exactly 2 paragraphs\n"
+        "- India fintech + RBI + enterprise AI lens throughout\n"
+        "- Make titles specific and compelling\n\n"
         f"SOURCE CONTENT:\n{payload}"
     )
 
@@ -473,7 +479,17 @@ def synthesize_with_openai(content_blocks: Iterable[str]) -> str:
     synthesized = (getattr(response, "output_text", None) or "").strip()
     if not synthesized:
         synthesized = str(response)
-    return enforce_narrative_memo(synthesized)
+
+    # Return newsletter format directly without forcing paragraph structure
+    if not synthesized or len(synthesized) < 50:
+        return (
+            "## 🎯 No Signals Available\n"
+            "**Source:** System\n\n"
+            "Signal inputs are currently sparse. Re-run ingestion once more source content is available.\n\n"
+            "Prioritize India-specific validation by combining RBI-aligned guardrails with customer workflow testing.\n"
+        )
+
+    return synthesized
 
 
 def write_output(markdown: str) -> None:
