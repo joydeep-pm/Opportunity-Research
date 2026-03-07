@@ -1,8 +1,9 @@
 export type SignalSection = {
-  key: "fintech-rbi" | "product" | string;
+  key: string;
   title: string;
   body: string;
   source?: string;
+  topics?: string[];
   id?: string;
 };
 

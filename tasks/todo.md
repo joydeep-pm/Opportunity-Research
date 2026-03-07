@@ -697,3 +697,37 @@
 - Verification:
   - `cd '/Users/joy/Opportunity Research' && npm run build` passed.
   - `cd '/Users/joy/Opportunity Research' && npm run test:e2e` passed (`15 passed`).
+
+## Claude Project Structure Upgrade Plan (2026-03-07)
+- [x] Add concise root `CLAUDE.md` with purpose, repo map, rules, and workflows.
+- [x] Add progressive docs context (`docs/architecture.md`, `docs/decisions/`, `docs/runbooks/`).
+- [x] Add reusable `.claude/skills` modules (`code-review`, `refactor`, `debugging`, `release-readiness`).
+- [x] Add `.claude/hooks` guardrail scripts + usage guidance.
+- [x] Add local module-level `CLAUDE.md` files for critical areas (`src/app/api`, `src/lib`, `prisma`).
+- [x] Validate repository health with a build check and document results.
+
+## Claude Project Structure Upgrade Review (2026-03-07)
+- Added root AI memory:
+  - `CLAUDE.md`
+- Added progressive docs context:
+  - `docs/architecture.md`
+  - `docs/decisions/README.md`
+  - `docs/runbooks/README.md`
+- Added reusable Claude skills:
+  - `.claude/skills/README.md`
+  - `.claude/skills/code-review/SKILL.md`
+  - `.claude/skills/refactor/SKILL.md`
+  - `.claude/skills/debugging/SKILL.md`
+  - `.claude/skills/release-readiness/SKILL.md`
+- Added deterministic guardrail hooks:
+  - `.claude/hooks/README.md`
+  - `.claude/hooks/run-quick-verify.sh`
+  - `.claude/hooks/check-protected-paths.sh`
+- Added local module context files:
+  - `src/app/api/CLAUDE.md`
+  - `src/lib/CLAUDE.md`
+  - `prisma/CLAUDE.md`
+- Updated:
+  - `README.md` (AI structure map additions)
+- Verification:
+  - `cd '/Users/joy/Opportunity Research' && npm run build` passed.

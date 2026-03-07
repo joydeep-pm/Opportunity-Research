@@ -15,7 +15,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
+import ProductLeaderDigest from "@/components/ProductLeaderDigest";
+import RBIPulse from "@/components/RBIPulse";
 import SignalNewsletter from "@/components/SignalNewsletter";
+import SignalTopicView from "@/components/SignalTopicView";
 import OutputActionBar from "@/components/OutputActionBar";
 import { saveSignalToHistory } from "./signalHistory";
 import { saveToHistory } from "./outputHistory";
@@ -239,8 +242,8 @@ const SKILLS: SkillConfig[] = [
     id: "signal",
     name: "Signal Engine",
     icon: Sparkles,
-    description: "Refreshes and loads split signal windows for Fintech/RBI and Product strategy.",
-    localScriptPath: "/api/signal/refresh (serverless)",
+    description: "Multi-source intelligence: RSS + Serper + DuckDuckGo + Twitter. Generates 5-8 signals with topic tags.",
+    localScriptPath: "/api/signal/python-refresh (Python backend)",
     runLabel: "Refresh Signal Windows",
     inputFields: [
       {
@@ -269,33 +272,58 @@ const SKILLS: SkillConfig[] = [
         }
       };
 
+      // Try Python backend first (full features: RSS + Serper + DuckDuckGo + Twitter)
       try {
-        const res = await fetch("/api/signal/refresh", { method: "POST" });
-        const contentType = res.headers.get("content-type") || "";
-        const json = contentType.includes("application/json")
-          ? await res.json()
-          : { error: await res.text() };
-        if (!res.ok) {
-          return fallback(json?.help || json?.details || json?.error || "Unknown refresh error");
-        }
-        const output = {
-          title: "Signal Engine Windows",
-          body: json?.markdown || "Signal refreshed but no memo text returned.",
-          sections: Array.isArray(json?.sections) ? json.sections : undefined,
-          updatedAt: json?.updatedAt || new Date().toISOString(),
-        };
-
-        // Save to history
-        saveSignalToHistory({
-          title: output.title,
-          markdown: output.body,
-          sections: output.sections,
-          updatedAt: output.updatedAt,
+        const pythonRes = await fetch("/api/signal/python-refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
         });
 
-        return output;
-      } catch {
-        return fallback("Network error while calling /api/signal/refresh");
+        if (pythonRes.ok) {
+          const json = await pythonRes.json();
+          const output = {
+            title: `Signal Engine (${json.meta?.sources?.join(" + ") || "Multi-Source"})`,
+            body: json?.markdown || "Signal refreshed but no memo text returned.",
+            sections: Array.isArray(json?.sections) ? json.sections : undefined,
+            updatedAt: json?.updatedAt || new Date().toISOString(),
+          };
+
+          // Save to history
+          saveSignalToHistory({
+            title: output.title,
+            markdown: output.body,
+            sections: output.sections,
+            updatedAt: output.updatedAt,
+          });
+
+          return output;
+        }
+
+        // Python backend failed, try Next.js route as fallback
+        const fallbackRes = await fetch("/api/signal/refresh", { method: "POST" });
+        if (fallbackRes.ok) {
+          const json = await fallbackRes.json();
+          const output = {
+            title: "Signal Engine (RSS + Serper only)",
+            body: json?.markdown || "Signal refreshed but no memo text returned.",
+            sections: Array.isArray(json?.sections) ? json.sections : undefined,
+            updatedAt: json?.updatedAt || new Date().toISOString(),
+          };
+
+          saveSignalToHistory({
+            title: output.title,
+            markdown: output.body,
+            sections: output.sections,
+            updatedAt: output.updatedAt,
+          });
+
+          return output;
+        }
+
+        return fallback("Both Python backend and Next.js route failed");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return fallback(`Network error: ${message}`);
       }
     },
   },
@@ -866,6 +894,7 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
   const [seedValues, setSeedValues] = useState<Record<string, string> | null>(null);
   const [activeContextHint, setActiveContextHint] = useState<string | null>(null);
   const [omnibarFocused, setOmnibarFocused] = useState(true);
+  const [signalViewMode, setSignalViewMode] = useState<"topic" | "newsletter" | "product-leaders" | "rbi-pulse">("topic"); // Topic View is recommended
   const inputRef = useRef<HTMLInputElement>(null);
 
   const activeSkill = useMemo(
@@ -1131,16 +1160,67 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
               >
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-xl font-semibold text-zinc-900">{output.title}</h3>
-                  <button
-                    onClick={() => setOutput(null)}
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                  >
-                    Close
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* View mode toggle for signals */}
+                    {Array.isArray(output.sections) && output.sections.length > 0 && (
+                      <div className="flex rounded-lg border border-zinc-300 bg-white">
+                        <button
+                          onClick={() => setSignalViewMode("topic")}
+                          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                            signalViewMode === "topic"
+                              ? "bg-blue-600 text-white"
+                              : "text-zinc-700 hover:bg-zinc-50"
+                          } rounded-l-lg`}
+                        >
+                          Topic
+                        </button>
+                        <button
+                          onClick={() => setSignalViewMode("newsletter")}
+                          className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-zinc-200 ${
+                            signalViewMode === "newsletter"
+                              ? "bg-blue-600 text-white"
+                              : "text-zinc-700 hover:bg-zinc-50"
+                          }`}
+                        >
+                          Newsletter
+                        </button>
+                        <button
+                          onClick={() => setSignalViewMode("product-leaders")}
+                          className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-zinc-200 ${
+                            signalViewMode === "product-leaders"
+                              ? "bg-blue-600 text-white"
+                              : "text-zinc-700 hover:bg-zinc-50"
+                          }`}
+                        >
+                          PM Leaders
+                        </button>
+                        <button
+                          onClick={() => setSignalViewMode("rbi-pulse")}
+                          className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-zinc-200 ${
+                            signalViewMode === "rbi-pulse"
+                              ? "bg-blue-600 text-white"
+                              : "text-zinc-700 hover:bg-zinc-50"
+                          } rounded-r-lg`}
+                        >
+                          RBI Pulse
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setOutput(null)}
+                      className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
                 {Array.isArray(output.sections) && output.sections.length > 0 ? (
                   <div className="max-h-[70vh] overflow-auto">
-                    <SignalNewsletter signals={output.sections} updatedAt={output.updatedAt} />
+                    {signalViewMode === "topic" ? (
+                      <SignalTopicView signals={output.sections} updatedAt={output.updatedAt} />
+                    ) : (
+                      <SignalNewsletter signals={output.sections} updatedAt={output.updatedAt} />
+                    )}
                   </div>
                 ) : (
                   <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
@@ -1323,16 +1403,54 @@ export default function Home({ initialSkillId = null, embedded = false }: Legacy
             >
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-xl font-semibold text-zinc-900">{output.title}</h3>
-                <button
-                  onClick={() => setOutput(null)}
-                  className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                >
-                  Close
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* View mode toggle for signals */}
+                  {Array.isArray(output.sections) && output.sections.length > 0 && (
+                    <div className="flex rounded-lg border border-zinc-300 bg-white">
+                      <button
+                        onClick={() => setSignalViewMode("topic")}
+                        className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                          signalViewMode === "topic"
+                            ? "bg-blue-600 text-white rounded-l-lg"
+                            : "text-zinc-700 hover:bg-zinc-50"
+                        }`}
+                      >
+                        Topic View
+                      </button>
+                      <button
+                        onClick={() => setSignalViewMode("newsletter")}
+                        className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                          signalViewMode === "newsletter"
+                            ? "bg-blue-600 text-white rounded-r-lg"
+                            : "text-zinc-700 hover:bg-zinc-50"
+                        }`}
+                      >
+                        Newsletter
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setOutput(null)}
+                    className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
               {Array.isArray(output.sections) && output.sections.length > 0 ? (
                 <div className="max-h-[70vh] overflow-auto">
-                  <SignalNewsletter signals={output.sections} updatedAt={output.updatedAt} />
+                  {signalViewMode === "topic" && (
+                    <SignalTopicView signals={output.sections} updatedAt={output.updatedAt} />
+                  )}
+                  {signalViewMode === "newsletter" && (
+                    <SignalNewsletter signals={output.sections} updatedAt={output.updatedAt} />
+                  )}
+                  {signalViewMode === "product-leaders" && (
+                    <ProductLeaderDigest signals={output.sections} updatedAt={output.updatedAt} />
+                  )}
+                  {signalViewMode === "rbi-pulse" && (
+                    <RBIPulse signals={output.sections} updatedAt={output.updatedAt} />
+                  )}
                 </div>
               ) : (
                 <div className="max-h-[56vh] overflow-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4">

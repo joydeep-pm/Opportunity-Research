@@ -89,12 +89,24 @@ def bounded_int(env_name: str, default: int, low: int, high: int) -> int:
 
 
 def get_substack_feeds() -> dict[str, str]:
-    return {
+    feeds = {
         "Lenny Rachitsky": os.getenv("SUBSTACK_FEED_LENNY", "https://www.lennysnewsletter.com/feed"),
         "John Cutler": os.getenv("SUBSTACK_FEED_JOHN", "https://cutlefish.substack.com/feed"),
         "Elena Verna": os.getenv("SUBSTACK_FEED_ELENA", "https://plgrowth.substack.com/feed"),
         "Code Newsletter AI": os.getenv("AI_NEWS_FEED_URL", "https://codenewsletter.ai/feed"),
     }
+
+    # Add RBI and Indian fintech news feeds
+    if os.getenv("RBI_PRESS_RELEASES"):
+        feeds["RBI Press Releases"] = os.getenv("RBI_PRESS_RELEASES")
+    if os.getenv("INC42_FINTECH"):
+        feeds["Inc42 Fintech"] = os.getenv("INC42_FINTECH")
+    if os.getenv("YOURSTORY_FINTECH"):
+        feeds["YourStory"] = os.getenv("YOURSTORY_FINTECH")
+    if os.getenv("MEDIANAMA_TECH"):
+        feeds["Medianama"] = os.getenv("MEDIANAMA_TECH")
+
+    return feeds
 
 
 def get_x_handles() -> list[str]:
@@ -112,12 +124,14 @@ def connector_enabled(mode: str, connector: str) -> bool:
         "rss": {"rss"},
         "serper": {"serper"},
         "apify": {"apify"},
+        "duckduckgo": {"duckduckgo"},
+        "google": {"google"},
         "rss_serper": {"rss", "serper"},
         "serper_apify": {"serper", "apify"},
-        "hybrid": {"rss", "serper", "apify"},
-        "all": {"rss", "serper", "apify"},
+        "hybrid": {"rss", "serper", "apify", "duckduckgo"},
+        "all": {"rss", "serper", "apify", "duckduckgo", "google"},
     }
-    enabled = mode_map.get(mode, mode_map["rss_serper"])
+    enabled = mode_map.get(mode, mode_map["hybrid"])
     return connector in enabled
 
 
@@ -305,6 +319,142 @@ def fetch_serper_content(cutoff_utc: datetime) -> list[str]:
     collected.sort(key=lambda row: row[0], reverse=True)
     results = [block for _, _, block in collected]
     logging.info("Collected %d Serper news items", len(results))
+    return results
+
+
+def fetch_duckduckgo_news(queries: list[str], cutoff_utc: datetime) -> list[str]:
+    """Fetch news from DuckDuckGo (free, unlimited)."""
+    enabled = os.getenv("DUCKDUCKGO_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+    if not enabled:
+        logging.info("DUCKDUCKGO_ENABLED is false. Skipping DuckDuckGo connector.")
+        return []
+
+    try:
+        from duckduckgo_search import DDGS
+    except ImportError:
+        logging.warning("duckduckgo-search not installed. Run: pip install duckduckgo-search")
+        return []
+
+    max_results = bounded_int("DUCKDUCKGO_MAX_RESULTS", default=10, low=1, high=50)
+    now_utc = datetime.now(timezone.utc)
+    collected: list[tuple[datetime, str, str]] = []
+    seen_urls: set[str] = set()
+
+    logging.info("Fetching DuckDuckGo news for %d queries (max %d results each)", len(queries), max_results)
+
+    with DDGS() as ddgs:
+        for query in queries:
+            try:
+                results = ddgs.news(query, max_results=max_results)
+                for item in results:
+                    link = item.get("url", "").strip()
+                    if not link or link in seen_urls:
+                        continue
+
+                    published_at = parse_iso_datetime(item.get("date"))
+                    if published_at and published_at < cutoff_utc:
+                        continue
+
+                    title = clean_text(item.get("title", "Untitled"), max_len=260)
+                    snippet = clean_text(item.get("body", ""), max_len=700)
+                    source_name = clean_text(item.get("source", "DuckDuckGo"), max_len=90)
+
+                    block = "\n".join(
+                        [
+                            f"Source: {source_name} (DuckDuckGo)",
+                            f"Query: {query}",
+                            f"Title: {title}",
+                            f"Published: {published_at.isoformat() if published_at else 'unknown'}",
+                            f"Summary: {snippet or 'No summary provided.'}",
+                            f"URL: {link}",
+                        ]
+                    )
+                    collected.append((published_at or now_utc, link, block))
+                    seen_urls.add(link)
+            except Exception as exc:
+                logging.warning("DuckDuckGo query failed (%s): %s", query, exc)
+
+    collected.sort(key=lambda row: row[0], reverse=True)
+    results = [block for _, _, block in collected]
+    logging.info("Collected %d DuckDuckGo news items", len(results))
+    return results
+
+
+def fetch_google_custom_search(queries: list[str], cutoff_utc: datetime) -> list[str]:
+    """Fetch news from Google Custom Search API (100/day free tier)."""
+    enabled = os.getenv("GOOGLE_CSE_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
+    if not enabled:
+        logging.info("GOOGLE_CSE_ENABLED is false. Skipping Google Custom Search connector.")
+        return []
+
+    api_key = os.getenv("GOOGLE_CSE_API_KEY")
+    cx = os.getenv("GOOGLE_CSE_CX")
+    if not api_key or not cx:
+        logging.info("GOOGLE_CSE_API_KEY or GOOGLE_CSE_CX not set. Skipping Google Custom Search.")
+        return []
+
+    try:
+        from googleapiclient.discovery import build
+    except ImportError:
+        logging.warning("google-api-python-client not installed. Run: pip install google-api-python-client")
+        return []
+
+    now_utc = datetime.now(timezone.utc)
+    collected: list[tuple[datetime, str, str]] = []
+    seen_urls: set[str] = set()
+
+    logging.info("Fetching Google Custom Search for %d queries", len(queries))
+
+    try:
+        service = build("customsearch", "v1", developerKey=api_key)
+
+        for query in queries:
+            try:
+                result = service.cse().list(q=query, cx=cx, num=10, sort="date").execute()
+                items = result.get("items", [])
+
+                for item in items:
+                    link = item.get("link", "").strip()
+                    if not link or link in seen_urls:
+                        continue
+
+                    title = clean_text(item.get("title", "Untitled"), max_len=260)
+                    snippet = clean_text(item.get("snippet", ""), max_len=700)
+
+                    # Try to extract date (Google doesn't always provide publish date)
+                    published_at = None
+                    if "pagemap" in item and "metatags" in item["pagemap"]:
+                        metatags = item["pagemap"]["metatags"][0]
+                        date_str = (
+                            metatags.get("article:published_time")
+                            or metatags.get("datePublished")
+                            or metatags.get("publishdate")
+                        )
+                        published_at = parse_iso_datetime(date_str)
+
+                    if published_at and published_at < cutoff_utc:
+                        continue
+
+                    block = "\n".join(
+                        [
+                            "Source: Google Search",
+                            f"Query: {query}",
+                            f"Title: {title}",
+                            f"Published: {published_at.isoformat() if published_at else 'unknown'}",
+                            f"Summary: {snippet or 'No summary provided.'}",
+                            f"URL: {link}",
+                        ]
+                    )
+                    collected.append((published_at or now_utc, link, block))
+                    seen_urls.add(link)
+            except Exception as exc:
+                logging.warning("Google Custom Search query failed (%s): %s", query, exc)
+    except Exception as exc:
+        logging.warning("Google Custom Search initialization failed: %s", exc)
+
+    collected.sort(key=lambda row: row[0], reverse=True)
+    results = [block for _, _, block in collected]
+    logging.info("Collected %d Google Custom Search items", len(results))
     return results
 
 
@@ -513,6 +663,12 @@ def main() -> None:
         combined_blocks.extend(fetch_substack_content(cutoff_utc))
     if connector_enabled(source_mode, "serper"):
         combined_blocks.extend(fetch_serper_content(cutoff_utc))
+    if connector_enabled(source_mode, "duckduckgo"):
+        ddg_queries = get_serper_queries()  # Reuse same queries
+        combined_blocks.extend(fetch_duckduckgo_news(ddg_queries, cutoff_utc))
+    if connector_enabled(source_mode, "google"):
+        google_queries = get_serper_queries()  # Reuse same queries
+        combined_blocks.extend(fetch_google_custom_search(google_queries, cutoff_utc))
     if connector_enabled(source_mode, "apify"):
         combined_blocks.extend(fetch_x_threads_apify(cutoff_utc))
 

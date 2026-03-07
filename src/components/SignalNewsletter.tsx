@@ -1,5 +1,7 @@
 "use client";
 
+import AuthorAvatar from "@/components/AuthorAvatar";
+import SignalSearch, { filterSignalsByQuery } from "@/components/SignalSearch";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -7,6 +9,7 @@ type SignalItem = {
   id?: string;
   title: string;
   source?: string;
+  topics?: string[];
   body: string;
   key: string;
 };
@@ -69,6 +72,35 @@ function NarrativeText({ text }: { text: string }) {
 
 export default function SignalNewsletter({ signals, updatedAt }: SignalNewsletterProps) {
   const { bookmarked, toggleBookmark } = useBookmarks();
+  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Extract all unique topics from signals
+  const allTopics = Array.from(
+    new Set(signals.flatMap((s) => s.topics || []))
+  ).sort();
+
+  // Filter signals by selected topics first
+  let filteredSignals = selectedTopics.size === 0
+    ? signals
+    : signals.filter((signal) =>
+        signal.topics?.some((topic) => selectedTopics.has(topic))
+      );
+
+  // Then filter by search query
+  filteredSignals = filterSignalsByQuery(filteredSignals, searchQuery);
+
+  const toggleTopic = (topic: string) => {
+    setSelectedTopics((prev) => {
+      const next = new Set(prev);
+      if (next.has(topic)) {
+        next.delete(topic);
+      } else {
+        next.add(topic);
+      }
+      return next;
+    });
+  };
 
   if (!signals || signals.length === 0) {
     return (
@@ -91,8 +123,56 @@ export default function SignalNewsletter({ signals, updatedAt }: SignalNewslette
         </div>
       )}
 
+      {/* Search */}
+      <SignalSearch onSearch={setSearchQuery} placeholder="Search signals by title, content, topic, or author..." />
+
+      {/* Topic Filters */}
+      {allTopics.length > 0 && (
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Filter by Topic
+            </span>
+            {selectedTopics.size > 0 && (
+              <button
+                onClick={() => setSelectedTopics(new Set())}
+                className="text-xs font-medium text-blue-600 hover:text-blue-700"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {allTopics.map((topic) => {
+              const isSelected = selectedTopics.has(topic);
+              const count = signals.filter((s) => s.topics?.includes(topic)).length;
+              return (
+                <button
+                  key={topic}
+                  onClick={() => toggleTopic(topic)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    isSelected
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  }`}
+                >
+                  {topic} ({count})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Signal count */}
+      <div className="text-xs text-zinc-500">
+        Showing {filteredSignals.length} of {signals.length} signals
+        {searchQuery && ` · Search: "${searchQuery}"`}
+        {selectedTopics.size > 0 && ` · Filtered by ${selectedTopics.size} topic${selectedTopics.size !== 1 ? 's' : ''}`}
+      </div>
+
       <div className="space-y-4">
-        {signals.map((signal, index) => {
+        {filteredSignals.map((signal, index) => {
           const signalId = signal.id || `${signal.title}-${index}`;
           const isBookmarked = bookmarked.has(signalId);
 
@@ -114,19 +194,41 @@ export default function SignalNewsletter({ signals, updatedAt }: SignalNewslette
                 )}
               </button>
 
-              {/* Source badge */}
+              {/* Author avatar and source */}
               {signal.source && (
-                <div className="mb-3">
-                  <span className="inline-block rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
-                    {signal.source}
-                  </span>
+                <div className="mb-3 flex items-center gap-2">
+                  <AuthorAvatar source={signal.source} size="md" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-zinc-900">
+                      {signal.source.split("|")[0].trim()}
+                    </span>
+                    {signal.source.includes("|") && (
+                      <span className="text-[11px] text-zinc-500">
+                        {signal.source.split("|")[1].trim()}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* Title */}
-              <h3 className="mb-4 pr-8 text-lg font-bold leading-tight text-zinc-900">
+              <h3 className="mb-3 pr-8 text-lg font-bold leading-tight text-zinc-900">
                 {signal.title.replace(/^##\s*/, "").replace(/🎯\s*/, "")}
               </h3>
+
+              {/* Topic badges */}
+              {signal.topics && signal.topics.length > 0 && (
+                <div className="mb-4 flex flex-wrap gap-1.5">
+                  {signal.topics.map((topic) => (
+                    <span
+                      key={topic}
+                      className="inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700"
+                    >
+                      #{topic}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Body (2 paragraphs) */}
               <div className="prose prose-sm max-w-none">

@@ -280,49 +280,61 @@ function normalizeModelOutput(content: string | ChatContentPart[] | undefined): 
   return text;
 }
 
-function normalizeSectionBody(raw: string): string {
-  return raw.replace(/\n{3,}/g, "\n\n").trim();
-}
-
 function parseSignalSections(raw: string): SignalSection[] {
-  const fintechMatch = raw.match(/\[\[FINTECH_RBI\]\]([\s\S]*?)(\[\[PRODUCT\]\]|$)/i);
-  const productMatch = raw.match(/\[\[PRODUCT\]\]([\s\S]*)$/i);
+  // Parse newsletter format: signals separated by "---"
+  const signalBlocks = raw.split(/\n?---\n?/).filter((s) => s.trim());
 
-  if (fintechMatch?.[1] && productMatch?.[1]) {
+  if (signalBlocks.length === 0) {
     return [
       {
-        key: "fintech-rbi",
-        title: "Fintech / RBI Window",
-        body: normalizeSectionBody(fintechMatch[1]),
-      },
-      {
-        key: "product",
-        title: "Product Window",
-        body: normalizeSectionBody(productMatch[1]),
+        key: "signal-0",
+        title: "Daily Signal",
+        body: raw.trim(),
       },
     ];
   }
 
-  const paragraphs = raw
-    .split(/\n{2,}/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-  const mid = Math.max(1, Math.floor(paragraphs.length / 2));
-  const first = paragraphs.slice(0, mid).join("\n\n");
-  const second = paragraphs.slice(mid).join("\n\n");
+  return signalBlocks.map((block, index) => {
+    const trimmed = block.trim();
 
-  return [
-    {
-      key: "fintech-rbi",
-      title: "Fintech / RBI Window",
-      body: normalizeSectionBody(first || raw),
-    },
-    {
-      key: "product",
-      title: "Product Window",
-      body: normalizeSectionBody(second || raw),
-    },
-  ];
+    // Extract title (## heading)
+    const titleMatch = trimmed.match(/^##\s+(.+)$/m);
+    const title = titleMatch ? titleMatch[1].replace(/🎯\s*/, "").trim() : `Signal ${index + 1}`;
+
+    // Extract source (**Source:** ...)
+    const sourceMatch = trimmed.match(/\*\*Source:\*\*\s+(.+?)$/m);
+    const source = sourceMatch ? sourceMatch[1].trim() : "";
+
+    // Extract topics (**Topics:** #Tag1 #Tag2)
+    const topicsMatch = trimmed.match(/\*\*Topics:\*\*\s+(.+?)$/m);
+    const topicsRaw = topicsMatch ? topicsMatch[1].trim() : "";
+    const topics = topicsRaw
+      .split(/\s+/)
+      .filter((t) => t.startsWith("#"))
+      .map((t) => t.replace(/^#/, ""));
+
+    // Get body (everything after topics line, or after source if no topics)
+    let bodyStart = 0;
+    if (topicsMatch) {
+      bodyStart = trimmed.indexOf(topicsMatch[0]) + topicsMatch[0].length;
+    } else if (sourceMatch) {
+      bodyStart = trimmed.indexOf(sourceMatch[0]) + sourceMatch[0].length;
+    }
+    const body = trimmed.slice(bodyStart).trim();
+
+    // Generate unique ID for bookmarking
+    const timestamp = Date.now();
+    const id = `signal-${timestamp}-${index}`;
+
+    return {
+      key: `signal-${index}`,
+      title,
+      body,
+      source,
+      topics,
+      id,
+    };
+  });
 }
 
 function sectionsToMarkdown(sections: SignalSection[]): string {
@@ -340,27 +352,45 @@ async function synthesizeSignalSections(payload: {
   }
 
   const systemPrompt = [
-    "You are a Fintech and Enterprise AI Product Leader writing for an executive audience.",
-    "Produce two narrative windows in plain text for India-focused operators.",
-    "Do not use bullet points, numbered lists, markdown tables, or markdown headings.",
-    "Window 1 must focus on RBI/compliance/fintech implications.",
-    "Window 2 must focus on product strategy, execution priorities, and enterprise AI implementation.",
-    "Each window must be 2 paragraphs, concrete and actionable.",
-    "Be concrete, opinionated, and practical. Avoid generic observations.",
+    "You are a strategic analyst curating a daily newsletter for an Indian fintech/AI product leader.",
+    "Extract 5-8 KEY SIGNALS from the source material and format each as a distinct newsletter item.",
+    "Each signal should have: (1) catchy title, (2) source attribution, (3) 2-3 topic tags, (4) exactly 2 concise paragraphs.",
+    "Filter everything through Indian fintech, RBI regulations, lending automation, and enterprise AI applications.",
+    "Focus on actionable insights, not generic trends. Be concrete and opinionated.",
   ].join(" ");
 
   const userPrompt = [
     `Focus lens: ${payload.focusLens}`,
-    "Using the source digest below, synthesize a narrative memo for operators building in India.",
-    "Return output strictly in this format:",
-    "[[FINTECH_RBI]]",
-    "<2 paragraphs on Indian fintech and RBI/compliance implications>",
-    "[[PRODUCT]]",
-    "<2 paragraphs on product strategy and execution implications>",
-    "No extra markers outside this format.",
-    "Source digest:",
+    "",
+    "Extract 5-8 key signals from the content below and format as a newsletter.",
+    "",
+    "FORMAT (use this exact structure):",
+    "---",
+    "## 🎯 [Catchy Signal Title]",
+    "**Source:** [Author Name] | [Publication/Platform]",
+    "**Topics:** #[Topic1] #[Topic2] #[Topic3]",
+    "",
+    "[Paragraph 1: What's the core insight or development?]",
+    "",
+    "[Paragraph 2: Why does this matter for Indian fintech/AI product leaders? What's the action?]",
+    "---",
+    "",
+    "TOPIC OPTIONS (choose 2-3 most relevant per signal):",
+    "#RBI #Compliance #Regulatory #Fintech #Lending #Payments #NBFC #UPI",
+    "#ProductManagement #Strategy #Execution #Teams #Growth #GTM",
+    "#AI #MachineLearning #LLM #Automation #Enterprise",
+    "#Engineering #Architecture #DevOps #Technology",
+    "",
+    "HARD CONSTRAINTS:",
+    "- Extract 5-8 signals maximum (focus on most impactful)",
+    "- Each signal: title, source, 2-3 topics, exactly 2 paragraphs",
+    "- India fintech + RBI + enterprise AI lens throughout",
+    "- Make titles specific and compelling (not generic)",
+    "- Attribute source accurately from digest below",
+    "",
+    "SOURCE DIGEST:",
     payload.context,
-  ].join("\n\n");
+  ].join("\n");
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
