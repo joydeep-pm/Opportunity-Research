@@ -33,3 +33,29 @@ playwright/.auth/
 
 /src/generated/prisma
 .vercel
+
+# ── GSD baseline (auto-generated) ──
+.gsd/activity/
+.gsd/runtime/
+.gsd/worktrees/
+.gsd/auto.lock
+.gsd/metrics.json
+.gsd/STATE.md
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+.env
+.env.*
+dist/
+build/
+venv/
+target/
+vendor/
+*.log
+coverage/
+.cache/
+tmp/
