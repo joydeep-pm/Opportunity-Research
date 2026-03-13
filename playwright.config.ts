@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
 
-const baseURL = process.env.BASE_URL || 'http://localhost:3000';
+const baseURL = process.env.BASE_URL || 'http://127.0.0.1:3000';
+const shouldManageWebServer = !process.env.BASE_URL;
 
 export default defineConfig({
   testDir: path.resolve(__dirname, 'tests'),
@@ -35,10 +36,12 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'npm run dev',
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: shouldManageWebServer
+    ? {
+        command: 'npm run dev -- --hostname 127.0.0.1 --port 3000',
+        url: baseURL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      }
+    : undefined,
 });

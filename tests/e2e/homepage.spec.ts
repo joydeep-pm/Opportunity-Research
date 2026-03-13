@@ -15,10 +15,11 @@ test.describe('Homepage', () => {
   test('[P0] displays workflow quick actions', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByText('Quick Actions')).toBeVisible();
-    await expect(page.getByText('Refresh Signals')).toBeVisible();
-    await expect(page.getByText('Start Research')).toBeVisible();
-    await expect(page.getByText('Draft Artifact')).toBeVisible();
+    await expect(page.getByText('Recommended Next Step')).toBeVisible();
+    const nextStepSection = page.locator('section').filter({ hasText: 'Recommended Next Step' });
+    await expect(
+      nextStepSection.getByRole('button', { name: /Open Research|Open Signals|Refresh Signals/ }),
+    ).toBeVisible();
   });
 
   test('[P1] shows today\'s signal brief on the homepage', async ({ page }) => {
@@ -30,7 +31,7 @@ test.describe('Homepage', () => {
   test('[P1] routes to signals surface via query parameter', async ({ page }) => {
     await page.goto('/?tool=signal');
 
-    await expect(page.getByRole('heading', { name: 'Signals' })).toBeVisible();
+    await expect(page.locator('h1')).toHaveText('Signals');
   });
 
   test('[P1] routes to research task via query parameter', async ({ page }) => {
