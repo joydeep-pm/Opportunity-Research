@@ -24,7 +24,7 @@ export default function VaultHome() {
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Vault</h1>
         <p className="max-w-3xl text-sm text-zinc-600">
-          Your durable store of saved signals, bookmarks, outputs, and reusable PM knowledge.
+          Your durable PM memory: saved signals, bookmarks, outputs, and reusable product knowledge.
         </p>
       </div>
 

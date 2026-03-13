@@ -4,7 +4,7 @@ test.describe('Homepage', () => {
   test('[P0] loads with workflow-first navigation visible', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByText('Opportunity Research')).toBeVisible();
+    await expect(page.getByText('PM Knowledge OS', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /Home/ })).toBeVisible();
     await expect(page.getByRole('link', { name: /Signals/ })).toBeVisible();
     await expect(page.getByRole('link', { name: /Research/ })).toBeVisible();
@@ -22,10 +22,12 @@ test.describe('Homepage', () => {
     ).toBeVisible();
   });
 
-  test('[P1] shows today\'s signal brief on the homepage', async ({ page }) => {
+  test('[P1] shows today\'s signal brief and automation status on the homepage', async ({ page }) => {
     await page.goto('/');
 
     await expect(page.getByText(/Today[’']s Signal Brief/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Automation Status' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Daily Signal refresh' }).first()).toBeVisible();
   });
 
   test('[P1] routes to signals surface via query parameter', async ({ page }) => {

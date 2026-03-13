@@ -73,7 +73,7 @@ export default function SignalsHome() {
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Signals</h1>
         <p className="max-w-3xl text-sm text-zinc-600">
-          Monitor what changed, bookmark what matters, and move the strongest signals into PM research and writing.
+          Run your monitoring loop here: review signal shifts, bookmark what matters, and hand off the strongest items into Research or Write.
         </p>
       </div>
 

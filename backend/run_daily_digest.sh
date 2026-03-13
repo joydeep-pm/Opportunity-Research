@@ -1,6 +1,6 @@
 #!/bin/bash
 # Daily Signal Digest Generator
-# Runs at 7am daily via cron
+# Canonical local automation entrypoint for the 7:00 AM daily cron run
 
 set -euo pipefail
 

@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getHistory } from "@/lib/outputHistory";
 import { getBookmarkedSignalItems, getSignalHistory } from "@/lib/signalHistory";
 import SignalTopicView from "@/components/SignalTopicView";
+import AutomationStatusPanel from "@/components/AutomationStatusPanel";
 import type { OutputHistoryItem } from "@/lib/outputHistory";
 
 type QuickActionConfig = {
@@ -208,7 +209,7 @@ export default function Dashboard() {
         </h1>
         <p className="text-sm text-zinc-500">{getCurrentDate()}</p>
         <p className="max-w-3xl text-sm text-zinc-600">
-          Monitor signals first, then turn what matters into product research and decision-ready artifacts.
+          Your PM Knowledge OS for monitoring signal shifts, turning them into research, and shipping decision-ready artifacts with clear automation status.
         </p>
       </div>
 
@@ -255,6 +256,15 @@ export default function Dashboard() {
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+          Automation Status
+        </h2>
+        <div className="rounded-xl border border-zinc-200 bg-transparent">
+          <AutomationStatusPanel compact />
         </div>
       </section>
 

@@ -11,10 +11,11 @@
 - Output: `/Users/joy/Opportunity Research/daily_signal.md`
 
 ## Step 2: Frontend Dashboard
-- App: `/Users/joy/Opportunity Research/frontend`
-- Intent-driven Omnibar with Signal workspace
+- App: `/Users/joy/Opportunity Research` (root Next.js app)
+- PM Knowledge OS dashboard with Home, Signals, Research, Write, and Vault surfaces
 - Reads signal markdown via `/api/signal`
-- Regenerates via `/api/signal/refresh`
+- Preferred manual refresh path: `/api/signal/python-refresh`
+- Fallback refresh path: `/api/signal/refresh`
 
 ## Step 3: Setup and Start Scripts
 - Install deps:
@@ -37,15 +38,17 @@
 - API refresh route uses project venv Python if present (`.venv/bin/python`) and falls back to `python3`.
 
 ## Step 5: Daily Scheduling (macOS cron)
-- Print cron instructions:
+- Canonical local schedule: run `backend/signal_engine.py` every day at 7:00 AM.
+- Install the cron entry:
   ```bash
   cd /Users/joy/Opportunity\ Research
-  ./start.sh --print-cron
+  ./backend/setup_cron.sh
   ```
 - Recommended line:
   ```cron
-  0 7 * * * cd "/Users/joy/Opportunity Research" && "/Users/joy/Opportunity Research/.venv/bin/python" "/Users/joy/Opportunity Research/backend/signal_engine.py" >> "/Users/joy/Opportunity Research/signal_engine.log" 2>&1
+  0 7 * * * cd "/Users/joy/Opportunity Research" && "/Users/joy/Opportunity Research/.venv/bin/python" "/Users/joy/Opportunity Research/backend/signal_engine.py" >> "/Users/joy/Opportunity Research/logs/digest_cron.log" 2>&1
   ```
+- Operational log file: `/Users/joy/Opportunity Research/logs/digest_cron.log`
 
 ## Environment File
 Create `/Users/joy/Opportunity Research/backend/.env` from `.env.example` and set:

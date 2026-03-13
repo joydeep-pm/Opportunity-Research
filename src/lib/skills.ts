@@ -192,7 +192,7 @@ export const SKILLS: SkillConfig[] = [
     name: "Signal Engine",
     icon: Sparkles,
     description: "Multi-source intelligence: RSS + Serper + DuckDuckGo + Twitter. Generates 5-8 signals with topic tags.",
-    localScriptPath: "/api/signal/python-refresh (Python backend)",
+    localScriptPath: "Preferred: /api/signal/python-refresh · Fallback: /api/signal/refresh",
     runLabel: "Refresh Signal Windows",
     inputFields: [
       {

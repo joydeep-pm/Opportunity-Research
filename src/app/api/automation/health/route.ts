@@ -40,8 +40,9 @@ export async function GET() {
 
     const lines = logText.split("\n").filter(Boolean);
     const completeLine = [...lines].reverse().find((line) => line.startsWith("=== Complete "));
+    const runStartLine = [...lines].reverse().find((line) => line.startsWith("=== Daily Signal Digest "));
     const failureLine = [...lines].reverse().find((line) =>
-      line.includes("ModuleNotFoundError") || line.includes("Traceback") || line.includes("ERROR"),
+      line.includes("ModuleNotFoundError") || line.includes("ImportError") || line.includes("Traceback") || line.includes("ERROR"),
     );
 
     if (completeLine) {
@@ -53,6 +54,14 @@ export async function GET() {
       result.lastRunStatus = "success";
     } else if (failureLine) {
       result.lastRunStatus = "failure";
+
+      if (runStartLine) {
+        const raw = runStartLine.replace(/^=== Daily Signal Digest\s*/, "").replace(/\s*===$/, "").trim();
+        const parsed = new Date(raw);
+        if (!Number.isNaN(parsed.getTime())) {
+          result.lastRunAt = parsed.toISOString();
+        }
+      }
     }
   } catch {
     result.logExists = false;

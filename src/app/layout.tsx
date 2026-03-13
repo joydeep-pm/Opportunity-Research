@@ -37,7 +37,7 @@ const PRIMARY_NAV = [
 
 function getTooltipContent(itemId: string): string {
   const tooltips: Record<string, string> = {
-    "": "Today’s brief, priorities, and resume points",
+    "": "PM Knowledge OS home: brief, automation status, and resume points",
     signal: "Monitor daily signals and triage what matters",
     research: "Turn signals into product insight and analysis",
     write: "Draft PRDs, briefs, and product artifacts",
@@ -113,7 +113,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-full w-full">
       <aside className="z-20 flex w-[240px] shrink-0 flex-col items-stretch border-r border-zinc-200 bg-white shadow-[1px_0_2px_rgba(0,0,0,0.02)]">
         <div className="flex h-14 shrink-0 items-center border-b border-zinc-200 px-4">
-          <span className="text-sm font-bold tracking-tight text-zinc-900">Opportunity Research</span>
+          <span className="text-sm font-bold tracking-tight text-zinc-900">PM Knowledge OS</span>
         </div>
         <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-4">
           {PRIMARY_NAV.map((item) => {

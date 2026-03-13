@@ -53,7 +53,7 @@ export default function WriteHome() {
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Write</h1>
         <p className="max-w-3xl text-sm text-zinc-600">
-          Turn monitored signals and research into decision-ready PM artifacts.
+          Turn monitored signals and research into PM artifacts you can share, review, and reuse.
         </p>
       </div>
 

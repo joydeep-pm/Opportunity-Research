@@ -11,12 +11,12 @@ test.describe('Automation Panel', () => {
       await skipTour.click();
     }
     await page.getByRole('button', { name: 'Automation' }).click();
-    await page.getByText('Daily Signal refresh').waitFor({ state: 'visible' });
+    await page.getByRole('heading', { name: 'Daily Signal refresh' }).nth(1).waitFor({ state: 'visible' });
 
     // Then: the canonical schedule, log path, and health surface are visible
-    await expect(page.getByText('Daily Signal refresh')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Daily Signal refresh' }).nth(1)).toBeVisible();
     await expect(page.getByText('backend/signal_engine.py', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('logs/digest_cron.log', { exact: true })).toBeVisible();
+    await expect(page.getByText('logs/digest_cron.log', { exact: true }).nth(1)).toBeVisible();
     await expect(page.getByText(/Recommended cron entry/i).first()).toBeVisible();
   });
 });

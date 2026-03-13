@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { getAuthorColor, getAuthorInfo, getAuthorInitials } from "@/lib/authorAvatars";
 
 type AuthorAvatarProps = {
@@ -26,21 +27,32 @@ export default function AuthorAvatar({ source, size = "sm", showName = false, sh
   const author = getAuthorInfo(source);
   const initials = getAuthorInitials(author.name);
   const colorClass = getAuthorColor(author.name);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [author.avatar, source]);
+
+  const showImage = Boolean(author.avatar) && !imageFailed;
 
   return (
     <div className="flex items-center gap-2">
-      {author.avatar ? (
+      {showImage ? (
         <Image
-          src={author.avatar}
+          src={author.avatar!}
           alt={author.name}
           width={imageSizes[size]}
           height={imageSizes[size]}
           className={`${sizeClasses[size]} rounded-full object-cover`}
           unoptimized
+          onError={() => {
+            setImageFailed(true);
+          }}
         />
       ) : (
         <div
           className={`${sizeClasses[size]} ${colorClass} flex items-center justify-center rounded-full font-semibold text-white`}
+          aria-label={`${author.name} avatar fallback`}
         >
           {initials}
         </div>

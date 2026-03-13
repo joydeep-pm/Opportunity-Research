@@ -14,7 +14,7 @@ type AutomationHealth = {
   logPath: string;
 };
 
-export default function AutomationStatusPanel() {
+export default function AutomationStatusPanel({ compact = false }: { compact?: boolean }) {
   const [signalRuns, setSignalRuns] = useState(0);
   const [health, setHealth] = useState<AutomationHealth | null>(null);
 
@@ -113,25 +113,29 @@ export default function AutomationStatusPanel() {
         </div>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          <TerminalSquare className="h-3.5 w-3.5" />
-          Recommended cron entry
-        </div>
-        <code className="block overflow-x-auto rounded-lg bg-zinc-950 p-3 text-[11px] leading-5 text-zinc-100">
-          {recommendedCron}
-        </code>
-      </div>
+      {!compact && (
+        <>
+          <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              <TerminalSquare className="h-3.5 w-3.5" />
+              Recommended cron entry
+            </div>
+            <code className="block overflow-x-auto rounded-lg bg-zinc-950 p-3 text-[11px] leading-5 text-zinc-100">
+              {recommendedCron}
+            </code>
+          </div>
 
-      <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          <FileText className="h-3.5 w-3.5" />
-          Runbook
-        </div>
-        <p className="text-xs leading-5 text-zinc-600">
-          Setup and cron guidance live in <code className="rounded bg-zinc-100 px-1 py-0.5">SIGNAL_ENGINE_RUNBOOK.md</code> and <code className="rounded bg-zinc-100 px-1 py-0.5">backend/setup_cron.sh</code>.
-        </p>
-      </div>
+          <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              <FileText className="h-3.5 w-3.5" />
+              Runbook
+            </div>
+            <p className="text-xs leading-5 text-zinc-600">
+              Setup and cron guidance live in <code className="rounded bg-zinc-100 px-1 py-0.5">SIGNAL_ENGINE_RUNBOOK.md</code> and <code className="rounded bg-zinc-100 px-1 py-0.5">backend/setup_cron.sh</code>.
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

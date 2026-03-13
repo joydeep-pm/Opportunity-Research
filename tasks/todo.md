@@ -70,4 +70,11 @@ Skills should remain available, but grouped under product workflows rather than 
 - [ ] Run build + E2E after the slice.
 
 ## Review Notes
-- In progress.
+- 2026-03-13: Aligned signal automation truth across `SIGNAL_ENGINE_RUNBOOK.md`, `backend/setup_cron.sh`, `backend/run_daily_digest.sh`, and `src/lib/skills.ts` on the canonical 7:00 AM local cron path using `backend/signal_engine.py` with logs at `logs/digest_cron.log`.
+- 2026-03-13: Hardened `src/app/api/automation/health/route.ts` to surface last failed run time when the log has a start marker but no completion marker.
+- 2026-03-13: Updated dashboard copy in `src/components/Dashboard.tsx` to position the app as a PM Knowledge OS with visible automation status.
+- 2026-03-13: Verification passed: `npm run build`; `npm run test:e2e -- automation-panel.spec.ts`.
+- 2026-03-13: Embedded `AutomationStatusPanel` into Home in compact mode so the PM Knowledge OS landing page now exposes automation health directly.
+- 2026-03-13: Normalized top-level PM workflow copy across `src/app/layout.tsx`, `src/components/SignalsHome.tsx`, `src/components/ResearchHome.tsx`, `src/components/WriteHome.tsx`, and `src/components/VaultHome.tsx`.
+- 2026-03-13: Tightened E2E assertions in `tests/e2e/homepage.spec.ts` and `tests/e2e/automation-panel.spec.ts` to reflect the new Home automation surface and deterministic matching.
+- 2026-03-13: Verification passed: `npm run build`; `npm run test:e2e -- homepage.spec.ts navigation.spec.ts automation-panel.spec.ts`.

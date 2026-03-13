@@ -67,7 +67,7 @@ export default function ResearchHome() {
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Research</h1>
         <p className="max-w-3xl text-sm text-zinc-600">
-          Turn saved signals into PM insight, opportunity framing, and competitive interpretation.
+          Convert shortlisted signals into decision-ready PM analysis, opportunity framing, and competitive reads.
         </p>
       </div>
 
