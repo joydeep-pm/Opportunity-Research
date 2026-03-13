@@ -62,10 +62,16 @@ export async function GET() {
       exists: true,
       updatedAt: stats.mtime.toISOString(),
       source: "filesystem",
+      freshness: {
+        source: "filesystem",
+        ageMinutes: Math.max(0, Math.round((Date.now() - stats.mtime.getTime()) / 60000)),
+        label: "Persisted snapshot",
+      },
     });
   } catch {
     const snapshot = getLatestSignalSnapshot();
     if (snapshot) {
+      const updatedAtMs = new Date(snapshot.updatedAt).getTime();
       return NextResponse.json({
         markdown: snapshot.markdown,
         exists: true,
@@ -73,6 +79,11 @@ export async function GET() {
         sections: snapshot.sections,
         source: "memory",
         meta: snapshot.meta,
+        freshness: {
+          source: "memory",
+          ageMinutes: Number.isFinite(updatedAtMs) ? Math.max(0, Math.round((Date.now() - updatedAtMs) / 60000)) : null,
+          label: "In-memory latest run",
+        },
       });
     }
 

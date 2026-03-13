@@ -3,17 +3,16 @@
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
-  WandSparkles,
   Search,
-  GitBranch,
   FileText,
-  Brain,
-  Target,
   Clock,
   CheckCircle2,
+  ArrowRight,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getHistory, getStats } from "@/lib/outputHistory";
+import { useEffect, useMemo, useState } from "react";
+import { getHistory } from "@/lib/outputHistory";
+import { getBookmarkedSignalItems, getSignalHistory } from "@/lib/signalHistory";
+import SignalTopicView from "@/components/SignalTopicView";
 import type { OutputHistoryItem } from "@/lib/outputHistory";
 
 type QuickActionConfig = {
@@ -27,45 +26,24 @@ type QuickActionConfig = {
 const QUICK_ACTIONS: QuickActionConfig[] = [
   {
     id: "signal",
-    label: "Signal Engine",
+    label: "Refresh Signals",
     icon: Sparkles,
-    description: "Refresh your knowledge feed",
+    description: "Review the latest monitored signals",
     toolId: "signal",
   },
   {
-    id: "linkedin",
-    label: "LinkedIn Post",
-    icon: WandSparkles,
-    description: "Create viral content",
-    toolId: "linkedin",
-  },
-  {
-    id: "market",
-    label: "Market Scan",
+    id: "research",
+    label: "Start Research",
     icon: Search,
-    description: "Research Play Store opportunity",
-    toolId: "play-store",
+    description: "Turn bookmarked signals into analysis",
+    toolId: "research",
   },
   {
-    id: "workflow",
-    label: "Agent Workflow",
-    icon: GitBranch,
-    description: "Design automation blueprint",
-    toolId: "workflow",
-  },
-  {
-    id: "prd",
-    label: "PRD Generator",
+    id: "write",
+    label: "Draft Artifact",
     icon: FileText,
-    description: "Create product spec",
-    toolId: "prd",
-  },
-  {
-    id: "validator",
-    label: "Idea Validator",
-    icon: Target,
-    description: "Score product ideas",
-    toolId: "validator",
+    description: "Create a PRD, brief, or memo",
+    toolId: "write",
   },
 ];
 
@@ -75,7 +53,7 @@ function QuickActionCard({ action }: { action: QuickActionConfig }) {
 
   return (
     <button
-      onClick={() => router.push(`/?tool=${action.toolId}`)}
+      onClick={() => router.push(action.toolId ? `/?tool=${action.toolId}` : "/")}
       className="group flex flex-col items-start gap-2 rounded-lg border border-zinc-200 bg-white p-4 text-left transition-all hover:border-violet-300 hover:shadow-md"
     >
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600 transition-colors group-hover:bg-violet-100">
@@ -149,41 +127,151 @@ function EmptyState({ icon: Icon, message }: { icon: React.ComponentType<{ class
   );
 }
 
+type DashboardSignal = {
+  title: string;
+  source?: string;
+  body: string;
+  key: string;
+  id?: string;
+  topics?: string[];
+};
+
 export default function Dashboard() {
+  const router = useRouter();
   const [recentOutputs, setRecentOutputs] = useState<OutputHistoryItem[]>([]);
-  const [stats, setStats] = useState({ totalOutputs: 0, savedOutputs: 0, pinnedOutputs: 0 });
+  const [signalRuns, setSignalRuns] = useState(0);
+  const [bookmarkedCount, setBookmarkedCount] = useState(0);
+  const [latestSignals, setLatestSignals] = useState<DashboardSignal[]>([]);
+  const [latestSignalUpdatedAt, setLatestSignalUpdatedAt] = useState<string | undefined>(undefined);
+  const [latestSignalSourceLabel, setLatestSignalSourceLabel] = useState<string | undefined>(undefined);
+  const [latestSignalFreshnessLabel, setLatestSignalFreshnessLabel] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    setRecentOutputs(getHistory().slice(0, 10));
-    setStats(getStats());
+    setRecentOutputs(getHistory().slice(0, 5));
+    setSignalRuns(getSignalHistory().length);
+    setBookmarkedCount(getBookmarkedSignalItems().length);
+
+    const loadLatestSignal = async () => {
+      try {
+        const res = await fetch("/api/signal", { cache: "no-store" });
+        const data = await res.json();
+        if (Array.isArray(data?.sections)) {
+          setLatestSignals(data.sections.slice(0, 5));
+          setLatestSignalUpdatedAt(data.updatedAt || undefined);
+          setLatestSignalSourceLabel(data?.source === "filesystem" ? "Filesystem" : data?.source === "memory" ? "Latest in-memory run" : undefined);
+          setLatestSignalFreshnessLabel(
+            typeof data?.freshness?.ageMinutes === "number"
+              ? `${data.freshness.ageMinutes} min old`
+              : data?.freshness?.label || undefined,
+          );
+        }
+      } catch {
+        // Non-blocking on dashboard
+      }
+    };
+
+    void loadLatestSignal();
   }, []);
+
+  const nextAction = useMemo(() => {
+    if (bookmarkedCount > 0) {
+      return {
+        title: `You have ${bookmarkedCount} bookmarked signal${bookmarkedCount === 1 ? "" : "s"} ready for analysis`,
+        description: "Move high-signal items into a research workflow and synthesize product implications.",
+        cta: "Open Research",
+        toolId: "research",
+      };
+    }
+
+    if (signalRuns > 0) {
+      return {
+        title: "Review the latest signal run and shortlist what matters",
+        description: "Bookmark the most decision-relevant signals, then carry them into research or drafting.",
+        cta: "Open Signals",
+        toolId: "signal",
+      };
+    }
+
+    return {
+      title: "Start with today’s signal refresh",
+      description: "Monitoring signals is the primary workflow. Refresh the feed, review what changed, and triage the strongest items.",
+      cta: "Refresh Signals",
+      toolId: "signal",
+    };
+  }, [bookmarkedCount, signalRuns]);
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
           {getCurrentGreeting()}, Joy
         </h1>
         <p className="text-sm text-zinc-500">{getCurrentDate()}</p>
+        <p className="max-w-3xl text-sm text-zinc-600">
+          Monitor signals first, then turn what matters into product research and decision-ready artifacts.
+        </p>
       </div>
 
-      {/* Quick Actions */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+            Today’s Signal Brief
+          </h2>
+          <span className="text-xs text-zinc-500">
+            {latestSignalUpdatedAt
+              ? `Updated ${new Date(latestSignalUpdatedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}`
+              : "Latest available snapshot"}
+          </span>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          {latestSignals.length > 0 ? (
+            <SignalTopicView
+              signals={latestSignals}
+              updatedAt={latestSignalUpdatedAt}
+              sourceLabel={latestSignalSourceLabel}
+              freshnessLabel={latestSignalFreshnessLabel}
+            />
+          ) : (
+            <EmptyState icon={Sparkles} message="No signal brief available yet. Open Signals to generate the first run." />
+          )}
+        </div>
+      </section>
+
       <section className="space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-          Quick Launch
+          Recommended Next Step
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl">
+              <h3 className="text-sm font-semibold text-zinc-900">{nextAction.title}</h3>
+              <p className="mt-1 text-sm text-zinc-600">{nextAction.description}</p>
+            </div>
+            <button
+              onClick={() => router.push(`/?tool=${nextAction.toolId}`)}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+            >
+              {nextAction.cta}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {QUICK_ACTIONS.map((action) => (
             <QuickActionCard key={action.id} action={action} />
           ))}
         </div>
       </section>
 
-      {/* Recent Activity */}
       <section className="space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-          Recent Activity
+          Resume Work
         </h2>
         {recentOutputs.length > 0 ? (
           <div className="space-y-2">
@@ -194,53 +282,9 @@ export default function Dashboard() {
         ) : (
           <EmptyState
             icon={Clock}
-            message="No recent outputs yet. Run a skill to get started!"
+            message="No recent work yet. Start by reviewing signals, then move into research or drafting."
           />
         )}
-      </section>
-
-      {/* Scheduled Jobs - Coming Soon */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-            Scheduled Automation
-          </h2>
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-            Coming Soon
-          </span>
-        </div>
-        <EmptyState
-          icon={Brain}
-          message="Automation and scheduling features are on the roadmap. You'll be able to schedule Signal refreshes, market scans, and more."
-        />
-      </section>
-
-      {/* System Health - Future */}
-      <section className="space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-          System Status
-        </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-2 w-2 items-center justify-center">
-              <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-            </div>
-            <span className="text-sm font-medium text-zinc-700">All systems operational</span>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-4 text-xs">
-            <div>
-              <div className="text-zinc-500">Total Outputs</div>
-              <div className="mt-1 text-lg font-semibold text-zinc-900">{stats.totalOutputs}</div>
-            </div>
-            <div>
-              <div className="text-zinc-500">Saved & Pinned</div>
-              <div className="mt-1 text-lg font-semibold text-zinc-900">
-                {stats.savedOutputs} ({stats.pinnedOutputs} pinned)
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
     </div>
   );

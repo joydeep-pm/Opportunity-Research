@@ -189,7 +189,7 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
         <Command.Input
           value={search}
           onValueChange={setSearch}
-          placeholder="Search skills or type a command..."
+          placeholder="Search workflows or type a command..."
           className="flex h-12 w-full bg-transparent text-sm outline-none placeholder:text-zinc-400"
         />
         <button
@@ -202,7 +202,7 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
 
       <Command.List className="max-h-[400px] overflow-y-auto p-2">
         <Command.Empty className="py-8 text-center text-sm text-zinc-500">
-          No skills found.
+          No workflows found.
         </Command.Empty>
 
         {recentSkills.length > 0 && !search && (
@@ -238,7 +238,7 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
           </Command.Group>
         )}
 
-        <Command.Group heading="All Skills">
+        <Command.Group heading="All Workflows">
           {!search && recentSkills.length > 0 && (
             <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
               All Skills

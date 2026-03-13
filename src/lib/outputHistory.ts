@@ -110,24 +110,27 @@ export function saveOutput(outputId: string, isPinned = false): void {
   const output = getOutputById(outputId);
   if (!output) return;
 
-  const saved = getSavedOutputs();
+  saveArbitraryOutput({
+    id: output.id,
+    title: output.title,
+    skillLabel: output.skillLabel,
+    timestamp: output.timestamp,
+    isPinned,
+    fullOutput: output.fullOutput,
+  });
+}
 
-  // Check if already saved
-  const existingIndex = saved.findIndex((item) => item.id === outputId);
+export function saveArbitraryOutput(output: SavedOutput): void {
+  const saved = getSavedOutputs();
+  const existingIndex = saved.findIndex((item) => item.id === output.id);
+
   if (existingIndex >= 0) {
-    // Update pin status
-    saved[existingIndex].isPinned = isPinned;
-  } else {
-    // Add new
-    const newSaved: SavedOutput = {
-      id: output.id,
-      title: output.title,
-      skillLabel: output.skillLabel,
-      timestamp: output.timestamp,
-      isPinned,
-      fullOutput: output.fullOutput,
+    saved[existingIndex] = {
+      ...saved[existingIndex],
+      ...output,
     };
-    saved.unshift(newSaved);
+  } else {
+    saved.unshift(output);
   }
 
   try {

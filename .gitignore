@@ -32,3 +32,4 @@ playwright/.auth/
 .DS_Store
 
 /src/generated/prisma
+.vercel

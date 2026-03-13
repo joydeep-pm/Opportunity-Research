@@ -1,56 +1,44 @@
 import { test, expect } from '../support/merged-fixtures';
 
 test.describe('Sidebar Navigation', () => {
-  test('[P1] displays all navigation groups', async ({ page }) => {
-    // Given: the app is running
-    // When: a user views the sidebar
+  test('[P1] displays the five primary surfaces', async ({ page }) => {
     await page.goto('/');
 
-    // Then: all navigation group headers are visible
-    await expect(page.getByText('Knowledge', { exact: true })).toBeVisible();
-    await expect(page.getByText('Market', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Content', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Management', { exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Home/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Signals/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Research/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Write/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Vault/ })).toBeVisible();
   });
 
-  test('[P1] sidebar links navigate between tools', async ({ page }) => {
-    // Given: the user is on the homepage
+  test('[P1] sidebar links navigate between primary surfaces', async ({ page }) => {
     await page.goto('/');
 
-    // When: the user clicks a sidebar link
-    await page.getByRole('link', { name: 'Daily Signal' }).click();
-
-    // Then: the URL updates to include the tool parameter
+    await page.getByRole('link', { name: /Signals/ }).click();
     await expect(page).toHaveURL(/tool=signal/);
+
+    await page.getByRole('link', { name: /Research/ }).click();
+    await expect(page).toHaveURL(/tool=research/);
   });
 
-  test('[P1] highlights active tool in sidebar', async ({ page }) => {
-    // Given: the user navigates to a specific tool
+  test('[P1] highlights active primary surface in sidebar', async ({ page }) => {
     await page.goto('/?tool=signal');
 
-    // Then: the Daily Signal link should be visually active (has active styles)
-    const signalLink = page.getByRole('link', { name: 'Daily Signal' });
+    const signalLink = page.getByRole('link', { name: /Signals/ });
     await expect(signalLink).toBeVisible();
   });
 });
 
-test.describe('Command Bar', () => {
-  test('[P1] command search input is present', async ({ page }) => {
-    // Given: the app is running
-    // When: the user views the header
+test.describe('Header Launcher', () => {
+  test('[P1] global launcher button is present', async ({ page }) => {
     await page.goto('/');
 
-    // Then: the command search input is visible
-    await expect(
-      page.getByRole('textbox', { name: 'Command search' }),
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /Search signals, research, drafts, or saved work/i })).toBeVisible();
   });
 
-  test('[P1] command bar shows Go button', async ({ page }) => {
-    // Given: the app is running
+  test('[P1] launcher shows shortcut hint', async ({ page }) => {
     await page.goto('/');
 
-    // Then: the Go submit button is visible in the header
-    await expect(page.getByRole('button', { name: 'Go' }).first()).toBeVisible();
+    await expect(page.getByText('⌘K')).toBeVisible();
   });
 });

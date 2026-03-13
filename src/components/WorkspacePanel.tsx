@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Activity, Bookmark, Clock, CheckCircle2, Pin, Trash2 } from "lucide-react";
 import { getHistory, getSavedOutputs, togglePin, deleteSavedOutput } from "@/lib/outputHistory";
+import AutomationStatusPanel from "@/components/AutomationStatusPanel";
 import type { OutputHistoryItem, SavedOutput } from "@/lib/outputHistory";
 
 type Tab = "activity" | "saved" | "queue";
@@ -37,7 +38,7 @@ function ActivityTab() {
           <Activity className="h-6 w-6" />
         </div>
         <p className="text-sm font-medium text-zinc-500">No recent activity</p>
-        <p className="mt-1 text-xs text-zinc-400">Run a skill to see outputs here</p>
+        <p className="mt-1 text-xs text-zinc-400">Run a workflow to see outputs here</p>
       </div>
     );
   }
@@ -177,18 +178,7 @@ function SavedTab() {
 }
 
 function QueueTab() {
-  return (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-        <Clock className="h-6 w-6" />
-      </div>
-      <p className="text-sm font-medium text-zinc-700">Automation Queue</p>
-      <p className="mt-1 text-xs text-zinc-500">Coming soon</p>
-      <p className="mt-3 text-xs text-zinc-400">
-        You&apos;ll be able to schedule skills to run automatically
-      </p>
-    </div>
-  );
+  return <AutomationStatusPanel />;
 }
 
 export default function WorkspacePanel() {
@@ -197,7 +187,7 @@ export default function WorkspacePanel() {
   const tabs = [
     { id: "activity" as Tab, label: "Activity", icon: Activity },
     { id: "saved" as Tab, label: "Saved", icon: Bookmark },
-    { id: "queue" as Tab, label: "Queue", icon: Clock },
+    { id: "queue" as Tab, label: "Automation", icon: Clock },
   ];
 
   return (

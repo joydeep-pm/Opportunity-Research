@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
 
-const ONBOARDING_KEY = "kwc-onboarding-complete";
+const ONBOARDING_KEY = "opportunity-research-onboarding-complete";
 
 const tourSteps: Step[] = [
   {
     target: "body",
     content: (
       <div className="space-y-3">
-        <h2 className="text-xl font-bold text-zinc-900">Welcome to KWC OS</h2>
+        <h2 className="text-xl font-bold text-zinc-900">Welcome to Opportunity Research</h2>
         <p className="text-sm text-zinc-600">
-          Your personal operating system for knowledge work and automation. Let me show you around!
+          Monitor signals, turn what matters into research, and draft decision-ready PM artifacts.
         </p>
       </div>
     ),
@@ -20,49 +20,24 @@ const tourSteps: Step[] = [
     disableBeacon: true,
   },
   {
-    target: "header button",
-    content: (
-      <div className="space-y-2">
-        <h3 className="font-semibold text-zinc-900">Command Bar</h3>
-        <p className="text-sm text-zinc-600">
-          Press <kbd className="rounded border border-zinc-300 bg-white px-1.5 py-0.5 font-mono text-xs">⌘K</kbd> anytime to search skills and execute commands quickly.
-        </p>
-      </div>
-    ),
-    placement: "bottom",
-  },
-  {
     target: "aside nav",
     content: (
       <div className="space-y-2">
-        <h3 className="font-semibold text-zinc-900">Your Skills</h3>
+        <h3 className="font-semibold text-zinc-900">Primary workflow</h3>
         <p className="text-sm text-zinc-600">
-          8 AI-powered skills ready to use: from Daily Signal to LinkedIn Writer. Each icon shows timing and details on hover.
+          Move through the product in a simple loop: Signals, Research, Write, and Vault.
         </p>
       </div>
     ),
     placement: "right",
   },
   {
-    target: "aside:last-of-type",
-    content: (
-      <div className="space-y-2">
-        <h3 className="font-semibold text-zinc-900">Workspace Panel</h3>
-        <p className="text-sm text-zinc-600">
-          Track all outputs here. Activity shows recent runs, Saved holds pinned items, and Queue is for automation (coming soon).
-        </p>
-      </div>
-    ),
-    placement: "left",
-  },
-  {
     target: "body",
     content: (
       <div className="space-y-3">
-        <h2 className="text-xl font-bold text-zinc-900">You&apos;re all set!</h2>
+        <h2 className="text-xl font-bold text-zinc-900">You&apos;re all set</h2>
         <p className="text-sm text-zinc-600">
-          Press <kbd className="rounded border border-zinc-300 bg-white px-1.5 py-0.5 font-mono text-xs">?</kbd> to see all keyboard shortcuts.
-          Try running your first skill from the Dashboard!
+          Press <kbd className="rounded border border-zinc-300 bg-white px-1.5 py-0.5 font-mono text-xs">⌘K</kbd> to open workflows quickly.
         </p>
       </div>
     ),
@@ -74,20 +49,24 @@ type WelcomeTourProps = {
   run?: boolean;
 };
 
-export default function WelcomeTour({ run: forcedRun }: WelcomeTourProps) {
+export default function WelcomeTour({ run: forcedRun = false }: WelcomeTourProps) {
+  const [mounted, setMounted] = useState(false);
   const [runTour, setRunTour] = useState(false);
 
   useEffect(() => {
-    // Check if user has seen onboarding
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (!forcedRun) return;
+
     const hasSeenOnboarding = localStorage.getItem(ONBOARDING_KEY);
-    if (!hasSeenOnboarding && !forcedRun) {
-      // Wait a bit for page to fully load
-      const timer = setTimeout(() => setRunTour(true), 1000);
-      return () => clearTimeout(timer);
-    } else if (forcedRun) {
-      setRunTour(true);
+    if (!hasSeenOnboarding) {
+      const timer = window.setTimeout(() => setRunTour(true), 400);
+      return () => window.clearTimeout(timer);
     }
-  }, [forcedRun]);
+  }, [forcedRun, mounted]);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status } = data;
@@ -95,10 +74,11 @@ export default function WelcomeTour({ run: forcedRun }: WelcomeTourProps) {
 
     if (finishedStatuses.includes(status)) {
       setRunTour(false);
-      // Mark onboarding as complete
       localStorage.setItem(ONBOARDING_KEY, "true");
     }
   };
+
+  if (!mounted) return null;
 
   return (
     <Joyride
@@ -110,8 +90,8 @@ export default function WelcomeTour({ run: forcedRun }: WelcomeTourProps) {
       callback={handleJoyrideCallback}
       styles={{
         options: {
-          primaryColor: "#7c3aed", // violet-600
-          textColor: "#27272a", // zinc-800
+          primaryColor: "#7c3aed",
+          textColor: "#27272a",
           backgroundColor: "#ffffff",
           overlayColor: "rgba(0, 0, 0, 0.4)",
           zIndex: 100,

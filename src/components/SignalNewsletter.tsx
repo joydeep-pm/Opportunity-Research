@@ -4,6 +4,7 @@ import AuthorAvatar from "@/components/AuthorAvatar";
 import SignalSearch, { filterSignalsByQuery } from "@/components/SignalSearch";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import { removeBookmarkedSignalItem, saveBookmarkedSignalItem } from "@/lib/signalHistory";
 
 type SignalItem = {
   id?: string;
@@ -17,6 +18,8 @@ type SignalItem = {
 type SignalNewsletterProps = {
   signals: SignalItem[];
   updatedAt?: string;
+  sourceLabel?: string;
+  freshnessLabel?: string;
 };
 
 function useBookmarks() {
@@ -33,13 +36,22 @@ function useBookmarks() {
     }
   }, []);
 
-  const toggleBookmark = (signalId: string) => {
+  const toggleBookmark = (signal: SignalItem, signalId: string) => {
     setBookmarked((prev) => {
       const next = new Set(prev);
       if (next.has(signalId)) {
         next.delete(signalId);
+        removeBookmarkedSignalItem(signalId);
       } else {
         next.add(signalId);
+        saveBookmarkedSignalItem({
+          id: signalId,
+          title: signal.title,
+          source: signal.source,
+          body: signal.body,
+          key: signal.key,
+          topics: signal.topics,
+        });
       }
       try {
         localStorage.setItem("kwc-bookmarked-signals", JSON.stringify(Array.from(next)));
@@ -70,7 +82,7 @@ function NarrativeText({ text }: { text: string }) {
   );
 }
 
-export default function SignalNewsletter({ signals, updatedAt }: SignalNewsletterProps) {
+export default function SignalNewsletter({ signals, updatedAt, sourceLabel, freshnessLabel }: SignalNewsletterProps) {
   const { bookmarked, toggleBookmark } = useBookmarks();
   const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,14 +124,20 @@ export default function SignalNewsletter({ signals, updatedAt }: SignalNewslette
 
   return (
     <div className="space-y-4">
-      {updatedAt && (
-        <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50/50 px-4 py-2">
+      {(updatedAt || sourceLabel || freshnessLabel) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-200 bg-blue-50/50 px-4 py-2">
           <span className="text-xs font-medium text-blue-900">
-            Last Updated: {new Date(updatedAt).toLocaleString("en-IN", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
+            {updatedAt
+              ? `Last Updated: ${new Date(updatedAt).toLocaleString("en-IN", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}`
+              : "Latest knowledge feed snapshot"}
           </span>
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            {sourceLabel && <span className="rounded-full bg-white px-2 py-1 font-medium text-blue-800">Source: {sourceLabel}</span>}
+            {freshnessLabel && <span className="rounded-full bg-white px-2 py-1 font-medium text-blue-800">{freshnessLabel}</span>}
+          </div>
         </div>
       )}
 
@@ -183,7 +201,7 @@ export default function SignalNewsletter({ signals, updatedAt }: SignalNewslette
             >
               {/* Bookmark button */}
               <button
-                onClick={() => toggleBookmark(signalId)}
+                onClick={() => toggleBookmark(signal, signalId)}
                 className="absolute right-4 top-4 rounded-lg p-2 transition-colors hover:bg-zinc-100"
                 title={isBookmarked ? "Remove bookmark" : "Bookmark this signal"}
               >

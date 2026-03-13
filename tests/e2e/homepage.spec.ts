@@ -1,40 +1,42 @@
 import { test, expect } from '../support/merged-fixtures';
 
 test.describe('Homepage', () => {
-  test('[P0] loads with sidebar navigation visible', async ({ page }) => {
-    // Given: the app is running
-    // When: a user navigates to the homepage
+  test('[P0] loads with workflow-first navigation visible', async ({ page }) => {
     await page.goto('/');
 
-    // Then: the sidebar with KWC OS branding is visible
-    await expect(page.getByText('KWC OS')).toBeVisible();
+    await expect(page.getByText('Opportunity Research')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Home/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Signals/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Research/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Write/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Vault/ })).toBeVisible();
   });
 
-  test('[P0] displays skill quick launch grid', async ({ page }) => {
-    // Given: the app is running
-    // When: a user navigates to the homepage
+  test('[P0] displays workflow quick actions', async ({ page }) => {
     await page.goto('/');
 
-    // Then: the Quick Launch section with skill buttons is visible
-    await expect(page.getByText('Quick Launch')).toBeVisible();
-    await expect(page.getByText('Signal Engine').first()).toBeVisible();
+    await expect(page.getByText('Quick Actions')).toBeVisible();
+    await expect(page.getByText('Refresh Signals')).toBeVisible();
+    await expect(page.getByText('Start Research')).toBeVisible();
+    await expect(page.getByText('Draft Artifact')).toBeVisible();
   });
 
-  test('[P1] routes to signal tool via query parameter', async ({ page }) => {
-    // Given: a tool query parameter is provided
-    // When: a user navigates with ?tool=signal
+  test('[P1] shows today\'s signal brief on the homepage', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.getByText(/Today[’']s Signal Brief/)).toBeVisible();
+  });
+
+  test('[P1] routes to signals surface via query parameter', async ({ page }) => {
     await page.goto('/?tool=signal');
 
-    // Then: the Signal Engine workspace should be shown
-    await expect(page.getByText('Signal Engine')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Signals' })).toBeVisible();
   });
 
-  test('[P1] routes to play-store tool via query parameter', async ({ page }) => {
-    // Given: a tool query parameter for play-store
-    // When: a user navigates with ?tool=play-store
+  test('[P1] routes to research task via query parameter', async ({ page }) => {
     await page.goto('/?tool=play-store');
 
-    // Then: the Play Store workspace should be shown
+    await expect(page.getByText('Research Task')).toBeVisible();
     await expect(page.getByText('Play Store Market Engine')).toBeVisible();
   });
 });

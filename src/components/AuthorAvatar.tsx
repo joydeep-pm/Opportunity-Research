@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { getAuthorColor, getAuthorInfo, getAuthorInitials } from "@/lib/authorAvatars";
 
 type AuthorAvatarProps = {
@@ -15,6 +16,12 @@ const sizeClasses = {
   lg: "h-10 w-10 text-sm",
 };
 
+const imageSizes = {
+  sm: 24,
+  md: 32,
+  lg: 40,
+};
+
 export default function AuthorAvatar({ source, size = "sm", showName = false, showRole = false }: AuthorAvatarProps) {
   const author = getAuthorInfo(source);
   const initials = getAuthorInitials(author.name);
@@ -22,12 +29,14 @@ export default function AuthorAvatar({ source, size = "sm", showName = false, sh
 
   return (
     <div className="flex items-center gap-2">
-      {/* Avatar */}
       {author.avatar ? (
-        <img
+        <Image
           src={author.avatar}
           alt={author.name}
+          width={imageSizes[size]}
+          height={imageSizes[size]}
           className={`${sizeClasses[size]} rounded-full object-cover`}
+          unoptimized
         />
       ) : (
         <div
@@ -37,7 +46,6 @@ export default function AuthorAvatar({ source, size = "sm", showName = false, sh
         </div>
       )}
 
-      {/* Name and role */}
       {(showName || showRole) && (
         <div className="flex flex-col">
           {showName && <span className="text-sm font-medium text-zinc-900">{author.name}</span>}
